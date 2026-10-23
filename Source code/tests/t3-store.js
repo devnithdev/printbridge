@@ -1,0 +1,21 @@
+const fs = require("fs"), os = require("os"), path = require("path"), assert = require("assert"), { execFileSync } = require("child_process");
+const R = require("path").join(__dirname, "..");
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pbs-"));
+let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log("  ok -", m); };
+const run = (code) => JSON.parse(execFileSync("node", ["-e", `const s=require(${JSON.stringify(R + "/server/lib/store")}); ${code}`], { env: Object.assign({}, process.env, { PRINT_DATA_DIR: dir }) }).toString().trim().split("\n").pop());
+const a = run(`s.db.agents.push({id:"a1",name:"Front desk"}); s.saveNow(); console.log(JSON.stringify({id:s.db.serverId}))`);
+ok(/^srv_/.test(a.id), "new website gets a permanent id");
+ok(fs.existsSync(path.join(dir, "db.json.bak")) && fs.existsSync(path.join(dir, "website-id.json")), "list saved with backup; id kept in its own file");
+fs.writeFileSync(path.join(dir, "db.json"), Buffer.alloc(500));
+const b = run(`console.log(JSON.stringify({id:s.db.serverId, agents:s.db.agents.length}))`);
+ok(b.id === a.id && b.agents === 1, "db.json wiped by a power cut -> list and id come back from the backup");
+fs.writeFileSync(path.join(dir, "db.json"), "{bad"); fs.writeFileSync(path.join(dir, "db.json.bak"), "{bad");
+const c = run(`console.log(JSON.stringify({id:s.db.serverId, agents:s.db.agents.length}))`);
+ok(c.id === a.id && c.agents === 0, "both copies damaged -> starts fresh but keeps the SAME id (printer computers still recognise it)");
+ok(fs.readdirSync(dir).some((f) => f.startsWith("db.json.damaged-")), "damaged copy set aside");
+// a 4.0.x db.json (no backup, no id file) is taken over as is
+const d2 = fs.mkdtempSync(path.join(os.tmpdir(), "pbs-"));
+fs.writeFileSync(path.join(d2, "db.json"), JSON.stringify({ serverId: "srv_0123456789abcdef01", agents: [{ id: "x" }], printers: [], jobs: [], helpAlerts: [] }));
+const e = JSON.parse(execFileSync("node", ["-e", `const s=require(${JSON.stringify(R + "/server/lib/store")}); console.log(JSON.stringify({id:s.db.serverId,agents:s.db.agents.length}))`], { env: Object.assign({}, process.env, { PRINT_DATA_DIR: d2 }) }).toString().trim());
+ok(e.id === "srv_0123456789abcdef01" && e.agents === 1 && JSON.parse(fs.readFileSync(path.join(d2, "website-id.json"))).id === e.id, "list from 4.0.x kept, its id copied to the id file");
+console.log(n + " checks passed");

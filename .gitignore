@@ -1,0 +1,7 @@
+# Built installers and published update files live outside git
+Installers/
+Updates/
+# Never commit a signing key
+*.pem
+.DS_Store
+node_modules/

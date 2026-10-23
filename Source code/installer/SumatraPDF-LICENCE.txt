@@ -1,0 +1,8 @@
+SumatraPDF.exe, installed next to Office Printing, is SumatraPDF - a free,
+open-source PDF reader used here to send PDFs to the printer.
+
+It is not part of Office Printing. It is distributed under the GNU GPL v3.
+
+Homepage:    https://www.sumatrapdfreader.org
+Source code: https://github.com/sumatrapdfreader/sumatrapdf
+Licence:     https://www.gnu.org/licenses/gpl-3.0.html

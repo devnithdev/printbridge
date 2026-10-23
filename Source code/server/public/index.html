@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="darkreader-lock">
+  <title>Print &middot; PrintBridge</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='4' y='1' width='8' height='4' rx='1' fill='%231E6FBF'/%3E%3Crect x='1' y='5' width='14' height='6' rx='1.5' fill='%231E6FBF'/%3E%3Crect x='4' y='9' width='8' height='6' rx='1' fill='%23ffffff' stroke='%231E6FBF'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
+</head>
+<body>
+  <div id="alertBanners" class="alert-banners"></div>
+
+  <header class="one-line">
+    <span class="brand-mark" aria-label="PrintBridge">PRINTBRIDGE</span>
+    <h1>Print</h1>
+    <div class="spacer"></div>
+    <button class="name-chip" id="nameChip" type="button" title="Change your name"></button>
+    <button class="refresh-btn" id="refreshAddrBtn" type="button" title="Look for the main computer's address again (use this if the page shows an error such as 404 or can't connect)">
+      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      <span class="refresh-text">Refresh address</span>
+    </button>
+    <button class="help-btn" id="helpBtn" type="button">Need help?</button>
+  </header>
+
+  <main>
+    <div id="pageMessage" class="page-message" hidden></div>
+
+    <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose files to print">
+      <div class="dropzone-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4"></path>
+          <path d="m6 10 6-6 6 6"></path>
+          <path d="M4 20h16"></path>
+        </svg>
+      </div>
+      <p class="dropzone-title">
+        <span class="drag-only">Drop files here to print</span>
+        <span class="tap-only">Tap to print something</span>
+      </p>
+      <p class="dropzone-sub">
+        <span class="drag-only">or click to choose &mdash; PDF, Word, Excel, PowerPoint, photos</span>
+        <span class="tap-only">Choose a file or photo &mdash; PDF, Word, Excel, photos</span>
+      </p>
+      <input id="fileInput" type="file" hidden multiple
+             accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.png,.jpg,.jpeg,.gif,.bmp,.tif,.tiff,.webp,image/*">
+    </div>
+
+    <div class="card" id="queueCard">
+      <h2>Printing now <span class="h2-note">&mdash; everyone</span></h2>
+      <table id="queueTable">
+        <thead>
+          <tr><th>#</th><th>Who</th><th>Printer</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="hint" id="queueHint">Nothing printing right now.</div>
+    </div>
+
+    <div class="footer-links">
+      <a href="/manage.html">Printers &amp; setup</a>
+      <a href="/poster.html">Sign for the wall</a>
+    </div>
+    <p class="credit">PrintBridge &middot; <span class="maker"><svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c-.6.8.6 1.7 0 2.5M11.5 3.5c-.6.8.6 1.7 0 2.5"/><path d="M3 21h14"/></svg>by @devnithdev</span></p>
+  </main>
+
+  <!-- First visit: who are you? (a label, not an account) -->
+  <div id="welcomeModal" class="modal-overlay" hidden>
+    <div class="modal" style="max-width:400px">
+      <div class="welcome-body">
+        <h2>What should we call you?</h2>
+        <p>So people can tell whose printout is whose at the tray. No account, no password &mdash; just a name on the job.</p>
+        <input id="welcomeName" type="text" placeholder="e.g. Dev, or Front desk iPad" maxlength="40" autocomplete="off">
+        <div style="margin-top:16px">
+          <button class="big-print" id="welcomeSave" type="button">Start printing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drop a file (or print from another program): check it, then print -->
+  <div id="printModal" class="modal-overlay" hidden>
+    <div class="modal print-modal">
+      <div class="modal-head">
+        <h2 id="printModalTitle">Print this?</h2>
+        <button class="icon-btn" id="closePrintModal" type="button" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="print-layout">
+        <section class="preview-pane" aria-label="Preview">
+          <div class="file-list" id="fileList"></div>
+          <div class="preview-status" id="previewStatus"></div>
+          <div class="thumbs" id="thumbs"></div>
+          <p class="preview-hint" id="previewHint" hidden></p>
+        </section>
+
+        <section class="settings-pane">
+          <div id="printerPick"></div>
+
+          <div class="layout-opts" id="layoutOpts">
+            <div class="field">
+              <label for="optRanges" id="optRangesLabel">Pages</label>
+              <input id="optRanges" type="text" inputmode="numeric" placeholder="All pages" autocomplete="off">
+              <div class="field-note" id="rangesNote"></div>
+            </div>
+            <div class="field">
+              <label id="orientationLabel">Orientation</label>
+              <div class="seg" id="segOrientation" role="radiogroup" aria-labelledby="orientationLabel">
+                <button type="button" data-value="auto" role="radio">Automatic</button>
+                <button type="button" data-value="portrait" role="radio">Portrait</button>
+                <button type="button" data-value="landscape" role="radio">Landscape</button>
+              </div>
+            </div>
+            <div class="field">
+              <label id="scalingLabel">Size on paper</label>
+              <div class="seg" id="segScaling" role="radiogroup" aria-labelledby="scalingLabel">
+                <button type="button" data-value="fit" role="radio">Fit to page</button>
+                <button type="button" data-value="actual" role="radio">Actual size</button>
+              </div>
+            </div>
+          </div>
+
+          <details class="options-fold" id="optionsFold">
+            <summary>More options</summary>
+            <div class="options-inner" id="options"></div>
+            <div class="checkline" style="margin-top:4px">
+              <input id="failover" type="checkbox" checked>
+              <label for="failover">If that printer is busy or off, use another one</label>
+            </div>
+          </details>
+        </section>
+      </div>
+
+      <div class="modal-foot">
+        <button class="big-print" id="printButton" type="button">Print</button>
+      </div>
+      <div id="printMessage" class="modal-message"></div>
+    </div>
+  </div>
+
+  <!-- One page, large -->
+  <div id="pageView" class="modal-overlay page-view" hidden>
+    <div class="modal pv-box">
+      <div class="modal-head">
+        <h2 id="pvTitle">Page 1</h2>
+        <button class="icon-btn" id="pvClose" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="pv-stage" id="pvStage"></div>
+      <div class="pv-foot">
+        <button type="button" class="secondary" id="pvPrev" aria-label="Previous page">&lsaquo; Previous</button>
+        <button type="button" class="pv-choose" id="pvChoose"></button>
+        <button type="button" class="secondary" id="pvNext" aria-label="Next page">Next &rsaquo;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change your name -->
+  <div id="nameModal" class="modal-overlay" hidden>
+    <div class="modal" style="max-width:400px">
+      <div class="modal-head">
+        <h2>Your name</h2>
+        <button class="icon-btn" id="closeName" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="nameInput">Shown next to your jobs in the queue</label>
+          <input id="nameInput" type="text" maxlength="40" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="big-print" id="nameSave" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ask for help -->
+  <div id="helpModal" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Ask for help</h2>
+        <button class="icon-btn" id="closeHelp" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="hint" style="margin-top:0">This puts a note on the screen of everyone with this page open, so whoever is nearby can come and sort it out.</p>
+        <div class="field">
+          <label for="helpMessage">What's wrong? (optional)</label>
+          <textarea id="helpMessage" rows="3" placeholder="e.g. Front desk printer is out of paper"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="big-print" id="sendHelp" type="button">Send</button>
+      </div>
+      <div id="helpFormMessage" class="modal-message"></div>
+    </div>
+  </div>
+
+  <script src="/vendor/pdfjs/pdf.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

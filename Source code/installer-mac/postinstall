@@ -1,0 +1,156 @@
+#!/bin/bash
+# Run by macOS Installer (as root) once the files below are in place:
+#   /Library/Application Support/PrintBridge/PrintBridge   the program
+# This does everything OfficePrinting.nsi's install Section does after
+# copying files: puts the background program in place to start by itself,
+# sets this computer up (asking, if there's someone there to ask - see
+# "finish-install" in main.js and setup-web.js), and starts it.
+
+set -e
+
+APP_DIR="/Library/Application Support/PrintBridge"
+APP_BIN="$APP_DIR/PrintBridge"
+DATA_DIR="$APP_DIR/data"
+LABEL="com.printbridge.service"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "PrintBridge: setting up..."
+
+# The package carries an Intel and an Apple Silicon program (one merged
+# "universal" file doesn't work with pkg); keep the one for this Mac.
+# hw.optional.arm64 is 1 on Apple Silicon even if this installer itself
+# happens to be running under Rosetta.
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = "1" ]; then
+  KEEP="arm64"; DROP="x64"
+else
+  KEEP="x64"; DROP="arm64"
+fi
+if [ ! -f "$APP_DIR/PrintBridge-$KEEP" ]; then
+  echo "PrintBridge: the program for this Mac ($KEEP) is missing from the installer." >&2
+  exit 1
+fi
+mv -f "$APP_DIR/PrintBridge-$KEEP" "$APP_BIN"
+rm -f "$APP_DIR/PrintBridge-$DROP"
+
+chmod 755 "$APP_DIR"
+chmod +x "$APP_BIN"
+
+# Lets the program answer incoming connections (from other computers'
+# printers and print jobs) even when the Application Firewall is switched
+# on - otherwise it's the one thing check.js's firewall check can never
+# find, since nothing else in this installer ever registers it. Root can
+# always run this (unlike "check", run later by an ordinary person), so
+# it's done once, here, for good. Both calls are best-effort: an older
+# macOS or the firewall being off already just makes them no-ops.
+socketfilterfw="/usr/libexec/ApplicationFirewall/socketfilterfw"
+if [ -x "$socketfilterfw" ]; then
+  "$socketfilterfw" --add "$APP_BIN" >/dev/null 2>&1 || true
+  "$socketfilterfw" --unblockapp "$APP_BIN" >/dev/null 2>&1 || true
+fi
+
+# launchd's own log file - StandardOutPath/StandardErrorPath in the plist -
+# has to already have somewhere to be created; the program makes the rest
+# of $DATA_DIR itself the moment it first runs.
+mkdir -p "$DATA_DIR/logs"
+chown -R root:wheel "$APP_DIR"
+chmod 755 "$DATA_DIR" "$DATA_DIR/logs"
+
+# launchd silently refuses to load a LaunchDaemon plist unless it (and
+# every folder above it) is owned by root and not writable by anyone else -
+# worth setting explicitly rather than trusting how the package unpacked it.
+install -o root -g wheel -m 644 "$SCRIPT_DIR/com.printbridge.service.plist" "/Library/LaunchDaemons/$LABEL.plist"
+
+# The uninstaller calls this (elevated) to do the actual removal - see
+# Uninstall-PrintBridge.command. Kept next to the program, not in the
+# menu folder below, since it isn't meant to be run by hand.
+install -o root -g wheel -m 700 "$SCRIPT_DIR/uninstall-helper.sh" "$APP_DIR/uninstall-helper.sh"
+
+# A menu folder in Applications - the mac equivalent of the Start Menu
+# folder Windows Setup makes. Anyone can open these (they only ask this
+# program to do something, or ask for a password when the job needs one -
+# see Uninstall-PrintBridge.command), so they're readable and runnable by
+# everyone, just not editable by anyone but an administrator.
+MENU_DIR="/Applications/PrintBridge"
+mkdir -p "$MENU_DIR"
+
+cat > "$MENU_DIR/Open PrintBridge.command" <<EOF
+#!/bin/bash
+"$APP_BIN" open
+EOF
+
+cat > "$MENU_DIR/Check PrintBridge.command" <<EOF
+#!/bin/bash
+"$APP_BIN" check
+EOF
+
+cat > "$MENU_DIR/Restart PrintBridge.command" <<EOF
+#!/bin/bash
+# The background program runs as root (it's a LaunchDaemon - see
+# com.printbridge.service.plist), so stopping and starting it again needs
+# a password too, same as Reconfigure.
+osascript -e 'do shell script "\"$APP_BIN\" restart" with administrator privileges with prompt "PrintBridge needs an administrator password to restart it."'
+echo "Restarted. This window can be closed."
+sleep 2
+EOF
+
+cat > "$MENU_DIR/Update PrintBridge now.command" <<EOF
+#!/bin/bash
+# Asks the running background program to look for a new version now. New
+# versions install by themselves anyway (every few hours); this just doesn't
+# wait. No password needed: it only installs versions signed for PrintBridge.
+"$APP_BIN" update-now
+sleep 4
+EOF
+
+cat > "$MENU_DIR/Reconfigure PrintBridge.command" <<EOF
+#!/bin/bash
+# Runs the same wizard Setup itself ran, to change this computer's role,
+# name, main computer address, or power behaviour. Needs an administrator
+# password, the same as Setup did, since it changes the printer and power
+# settings - asked for once, up front. Restarting afterward (same
+# elevation, same prompt) is what makes the already-running background
+# program pick up the new settings straight away, instead of only after
+# this computer is next rebooted.
+osascript -e 'do shell script "\"$APP_BIN\" setup-wizard && \"$APP_BIN\" restart" with administrator privileges with prompt "PrintBridge needs an administrator password to change these settings."'
+EOF
+
+cat > "$MENU_DIR/Read Me.txt" <<EOF
+PrintBridge - print from any computer to any printer in the office.
+
+Open PrintBridge         Opens the printing page in your browser.
+Check PrintBridge        Says whether everything on this computer is working.
+Restart PrintBridge      Stops and starts PrintBridge on this computer.
+Update PrintBridge now   Looks for a new version now (new versions install by themselves anyway).
+Reconfigure PrintBridge  Changes what this computer does, its name, or its power behaviour.
+Uninstall PrintBridge    Removes PrintBridge from this computer.
+
+PrintBridge - ☕ by @devnithdev.
+EOF
+
+install -m 755 "$SCRIPT_DIR/Uninstall-PrintBridge.command" "$MENU_DIR/Uninstall PrintBridge.command"
+chmod 755 "$MENU_DIR"/*.command
+chown -R root:admin "$MENU_DIR"
+
+# Sets this computer up: the wizard, if someone is signed in to answer it
+# (waiting for them to finish - see runInstallFlow() in setup-web.js),
+# otherwise the recommended settings, so this computer works either way.
+# Not run as part of the LaunchDaemon below: that one only starts the
+# ongoing background program, once this has already decided what it
+# should do.
+"$APP_BIN" finish-install || echo "PrintBridge: setting this computer up ran into a problem - it can be finished later; see 'Reconfigure PrintBridge'."
+
+# On a first install the person may have chosen "Close without starting" on
+# the setup page. The program is then left for the next start of this Mac (or
+# "Restart PrintBridge" in the PrintBridge folder).
+CHOICE_FILE="$DATA_DIR/start-choice.txt"
+if [ -f "$CHOICE_FILE" ] && [ "$(cat "$CHOICE_FILE" 2>/dev/null)" = "later" ]; then
+  rm -f "$CHOICE_FILE"
+  echo "PrintBridge: installed, not started (as chosen). It starts by itself when this Mac next starts."
+  exit 0
+fi
+rm -f "$CHOICE_FILE"
+
+echo "PrintBridge: starting..."
+launchctl bootstrap system "/Library/LaunchDaemons/$LABEL.plist" 2>/dev/null || launchctl load "/Library/LaunchDaemons/$LABEL.plist"
+
+exit 0

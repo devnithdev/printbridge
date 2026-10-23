@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="darkreader-lock">
+  <title>Printers &amp; setup &middot; PrintBridge</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='4' y='1' width='8' height='4' rx='1' fill='%231E6FBF'/%3E%3Crect x='1' y='5' width='14' height='6' rx='1.5' fill='%231E6FBF'/%3E%3Crect x='4' y='9' width='8' height='6' rx='1' fill='%23ffffff' stroke='%231E6FBF'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
+</head>
+<body>
+  <header>
+    <span class="brand-mark" aria-label="PrintBridge">PRINTBRIDGE</span>
+    <h1>Printers &amp; setup</h1>
+    <div class="spacer"></div>
+    <button class="secondary" onclick="location.href='/'" type="button">Back to printing</button>
+  </header>
+
+  <main>
+    <div id="pageMessage" class="page-message" hidden></div>
+
+    <div class="card">
+      <h2>Add a printer</h2>
+      <p style="margin-top:0;font-size:15px">
+        On the computer the printer is plugged into, run <strong>PrintBridge Setup</strong>
+        and choose <strong>This computer shares a printer</strong>. It finds this
+        computer by itself, and its printers appear here within a minute.
+      </p>
+      <div class="going-to" style="margin-bottom:10px">
+        This computer's address: <strong id="setupAddress">loading...</strong>
+      </div>
+      <p class="hint" style="margin-top:0">
+        Only needed if Setup doesn't find it by itself: type it into the
+        &ldquo;Main computer's address&rdquo; box. No account, no token.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Printers</h2>
+      <table id="printerTable">
+        <thead>
+          <tr><th>Printer</th><th>On which computer</th><th>Shown to people?</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="hint" id="printerHint">No printers yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>Computers with printers</h2>
+      <table id="computerTable">
+        <thead>
+          <tr><th>Name</th><th>System</th><th>Version</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="hint" id="computerHint">None connected yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>The sign for the wall</h2>
+      <p style="margin-top:0;font-size:15px">
+        Print this once and stick it next to the printer. Anyone can scan the
+        code with a phone camera and start printing &mdash; nothing to install.
+      </p>
+      <button onclick="location.href='/poster.html'" type="button">Open the sign</button>
+    </div>
+
+    <div class="footer-links">
+      <a href="/">Back to printing</a>
+    </div>
+    <p class="credit">PrintBridge &middot; <span class="maker"><svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c-.6.8.6 1.7 0 2.5M11.5 3.5c-.6.8.6 1.7 0 2.5"/><path d="M3 21h14"/></svg>by @devnithdev</span></p>
+  </main>
+
+  <script src="/manage.js"></script>
+</body>
+</html>

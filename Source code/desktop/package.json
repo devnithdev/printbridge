@@ -1,0 +1,21 @@
+{
+  "name": "office-printing",
+  "version": "4.1.3",
+  "private": true,
+  "description": "PrintBridge - one program for the website and printer sharing",
+  "author": "Devnith AE",
+  "bin": "desktop/main.js",
+  "pkg": {
+    "scripts": [
+      "desktop/*.js",
+      "desktop/lib/*.js",
+      "server/*.js",
+      "server/lib/*.js",
+      "agent/*.js",
+      "agent/lib/*.js"
+    ],
+    "assets": [
+      "server/public/**/*"
+    ]
+  }
+}

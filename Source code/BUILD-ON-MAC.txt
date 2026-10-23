@@ -1,0 +1,99 @@
+PRINTBRIDGE FOR MAC - HOW TO BUILD THE INSTALLER
+================================================
+
+This turns the source code into one file, PrintBridge-4.1.3.dmg, that you
+can give to other Macs. You do this once, on any Mac. Nobody else needs to.
+
+WHAT YOU NEED (one-time, free)
+------------------------------
+1. A Mac (Intel or Apple Silicon, macOS 12 or newer) with internet.
+2. Node.js. Download the "LTS" installer from https://nodejs.org and click
+   through it.
+3. Apple's command line tools. Open the Terminal app (press Cmd + Space,
+   type Terminal, press Enter) and run:
+       xcode-select --install
+   and click Install. Skip this if it says they are already installed.
+
+
+STEP 1 - BUILD IT  (about 5 to 10 minutes)
+------------------------------------------
+In Terminal, go into this folder and run the build. If the folder is on
+your Desktop and called "PrintBridge Mac":
+
+       cd ~/Desktop/"PrintBridge Mac"/installer-mac
+       chmod +x build-pkg.sh ../desktop/build.sh preinstall postinstall uninstall-helper.sh Uninstall-PrintBridge.command
+       ./build-pkg.sh
+
+When it finishes it prints "Done" and the results are in the "dist" folder
+next to it:
+       PrintBridge.pkg          the installer
+       PrintBridge-4.1.3.dmg    the same installer inside a disk image
+
+That is all you need to do to test it on your own Mac.
+
+
+STEP 2 - TRY IT ON YOUR MAC
+---------------------------
+1. Open PrintBridge-4.1.3.dmg, then double-click PrintBridge.pkg.
+   (If it isn't signed, macOS says it can't be opened. Click Done, then open
+   System Settings > Privacy & Security, scroll down and click "Open Anyway"
+   next to PrintBridge.pkg, and confirm with your password. On macOS 15 and
+   later right-click > Open no longer does this. This is normal for an
+   unsigned installer; Step 3 removes the warning.)
+2. Follow the screens and type your Mac password when asked.
+3. A page opens in your browser. Choose "Is the main computer"
+   (or "Shares a printer") and finish. A progress bar shows the setup; if
+   you chose LibreOffice it is a download of about 300 MB, so give it a few
+   minutes and keep the page open until it says "All set".
+4. Open the "PrintBridge" folder inside Applications. "Check PrintBridge"
+   says in plain words whether everything is working.
+5. To remove it again, use "Uninstall PrintBridge" in that same folder.
+
+
+STEP 3 - (OPTIONAL) REMOVE THE APPLE WARNING
+--------------------------------------------
+An installer signed by Apple's system opens on any Mac with no warning.
+This needs a paid Apple Developer account (about US$99 a year):
+https://developer.apple.com/programs/
+
+1. In your account, create two certificates and install them in Keychain
+   Access: "Developer ID Application" and "Developer ID Installer".
+2. Create an app-specific password at https://appleid.apple.com and store
+   it once (replace the three parts in capitals):
+       xcrun notarytool store-credentials "printbridge" \
+         --apple-id YOUR-APPLE-ID --team-id YOUR-TEAM-ID --password APP-SPECIFIC-PASSWORD
+3. Build again, this time with your certificate names (find them in Keychain
+   Access):
+       export APP_SIGN_ID="Developer ID Application: Your Name (TEAMID)"
+       export PKG_SIGN_ID="Developer ID Installer: Your Name (TEAMID)"
+       export NOTARY_PROFILE="printbridge"
+       ./build-pkg.sh
+   It signs the program, sends the installer to Apple for a check (a few
+   minutes) and attaches Apple's approval. The finished .dmg then opens
+   with no warning on any Mac.
+
+
+IF SOMETHING GOES WRONG
+-----------------------
+- "pkgbuild wasn't found": run  xcode-select --install  and try again.
+- "command not found: node": install Node.js (above), then open a NEW
+  Terminal window.
+- The build stops while downloading: check the internet and run it again.
+- "Permission denied": run the chmod line in Step 1 again.
+- After installing, "Check PrintBridge" tells you what to fix in plain words.
+  The log is at /Library/Application Support/PrintBridge/data/logs/
+
+WHAT CANNOT BE DONE ON A MAC (compared with Windows)
+----------------------------------------------------
+- "What happens when the lid closes": only "keep working" or "sleep as usual".
+- Critical battery: macOS handles this itself. Instead, Low Power Mode is
+  switched on automatically while running on battery (macOS 12 or newer).
+
+IMPORTANT
+---------
+The Mac installer has been checked as far as is possible without a Mac (the
+program was built and a print job was round-tripped through a test print
+server). It has not yet been installed on a real Mac, so please install it
+on ONE Mac first and print a test page before using it more widely.
+
+PrintBridge - ☕ by @devnithdev

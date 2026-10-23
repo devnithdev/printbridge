@@ -1,0 +1,28 @@
+#!/bin/bash
+# Run by macOS Installer (as root) before any files are put in place - for
+# an update as much as a first install, since a .pkg with the same
+# identifier always replaces what's there. The one thing that has to
+# happen first: stop whatever is currently running, so the files it's
+# running from can be safely replaced, and so the new version - not an old
+# one still running - is what answers from here on.
+#
+# There is nothing here like Windows' hunt through Startup folders, Task
+# Scheduler and the registry for a leftover pre-installer copy - there is
+# no such history on macOS. This is the first release here, so the only
+# "previous install" that can exist is an earlier PrintBridge.pkg, and a
+# LaunchDaemon with a fixed, known label is all that needs taking over.
+
+set -e
+
+LABEL="com.printbridge.service"
+PLIST="/Library/LaunchDaemons/$LABEL.plist"
+
+if launchctl print "system/$LABEL" >/dev/null 2>&1; then
+  echo "PrintBridge: stopping the currently running version..."
+  launchctl bootout system "$PLIST" 2>/dev/null || true
+elif launchctl list "$LABEL" >/dev/null 2>&1; then
+  # An older launchctl (pre-bootstrap/bootout, macOS 10.10 or earlier).
+  launchctl unload "$PLIST" 2>/dev/null || true
+fi
+
+exit 0

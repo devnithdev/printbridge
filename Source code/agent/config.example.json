@@ -1,0 +1,8 @@
+{
+  "serverUrl": "ws://localhost:3000/agent",
+  "token": "PASTE-THE-TOKEN-FROM-THE-WEB-PAGE-HERE",
+  "agentName": "my-macbook",
+  "sumatraPath": "",
+  "ghostscriptPath": "",
+  "dryRun": false
+}

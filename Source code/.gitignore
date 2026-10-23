@@ -1,0 +1,23 @@
+node_modules/
+.DS_Store
+*.log
+.pkg-cache/
+dist/
+
+# Saved by the website and the printer part when run from source
+server/data/
+server/uploads/*
+!server/uploads/.gitkeep
+agent/downloads/*
+!agent/downloads/.gitkeep
+agent/config.json
+agent/config.json.bak
+agent/config.json.tmp
+agent/status.json
+agent/last-printers.json
+agent/handled-jobs.json
+
+# The installers a build makes
+installer/dist/
+installer-mac/dist/
+desktop/dist/

@@ -1,0 +1,16 @@
+{
+  "name": "print-platform-server",
+  "version": "4.1.3",
+  "private": true,
+  "description": "PrintBridge web server",
+  "author": "Devnith AE",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
+    "ws": "^8.18.3"
+  }
+}

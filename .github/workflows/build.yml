@@ -1,0 +1,86 @@
+# Builds PrintBridge on GitHub's own computers, so no Mac (or Windows) is
+# needed to make the installers. Runs:
+#   - by hand: Actions tab > "Build installers" > Run workflow
+#   - by itself for every tag like v4.1.4 (git tag v4.1.4 && git push --tags)
+#
+# The finished installers are attached to the run as "PrintBridge-<version>"
+# (Actions > the run > Artifacts). They are NOT published from here: the
+# signature that lets computers install an update is made on your Mac with
+# the private key, which never comes to GitHub (see PUBLISH-UPDATE.command
+# and the how-to document, section 10).
+
+name: Build installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  test:
+    name: Automatic checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install packages
+        run: |
+          cd "Source code/server" && npm ci --omit=dev
+          cd ../agent && npm ci --omit=dev
+      - name: Run the checks
+        working-directory: Source code/tests
+        run: |
+          node t1-durable.js
+          node t3-store.js
+          node t10-updates.js
+          node t11-fixip.js
+
+  windows:
+    name: Windows installer
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install NSIS
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+      - name: Build PrintBridgeSetup.exe
+        working-directory: Source code/installer
+        run: chmod +x build-windows.sh ../desktop/build.sh && ./build-windows.sh
+      - name: Version
+        id: v
+        run: echo "version=$(sed -n 's/.*VERSION: \"\([^\"]*\)\".*/\1/p' 'Source code/desktop/lib/version.js')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PrintBridge-${{ steps.v.outputs.version }}-windows
+          path: Source code/installer/dist/PrintBridgeSetup.exe
+          retention-days: 30
+
+  mac:
+    name: Mac installer
+    needs: test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Rosetta (pkg builds the Intel program too)
+        run: softwareupdate --install-rosetta --agree-to-license || true
+      - name: Build PrintBridge.pkg and the .dmg
+        working-directory: Source code/installer-mac
+        run: chmod +x build-pkg.sh ../desktop/build.sh preinstall postinstall uninstall-helper.sh Uninstall-PrintBridge.command && ./build-pkg.sh
+      - name: Version
+        id: v
+        run: echo "version=$(sed -n 's/.*VERSION: \"\([^\"]*\)\".*/\1/p' 'Source code/desktop/lib/version.js')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PrintBridge-${{ steps.v.outputs.version }}-mac
+          path: |
+            Source code/installer-mac/dist/PrintBridge.pkg
+            Source code/installer-mac/dist/PrintBridge-*.dmg
+          retention-days: 30

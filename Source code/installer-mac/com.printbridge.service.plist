@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The background program (the website and/or printer sharing, and the
+  "PrintBridge" printer's outbox) - the mac equivalent of the Run key
+  Windows Setup adds, except this one starts at boot, before anyone signs
+  in, and keeps running whoever if anyone is signed in. See paths.js and
+  supervisor.js for what it actually runs.
+
+  Installed by installer-mac/postinstall to /Library/LaunchDaemons/ with
+  root:wheel ownership and mode 644 - launchd silently refuses to load a
+  LaunchDaemon plist that isn't owned that way, so postinstall sets that
+  explicitly rather than relying on how it happened to be packaged.
+
+  KeepAlive only restarts it if it crashes (a signal like a real crash
+  would raise), not on an ordinary exit - so "Restart PrintBridge" and
+  "Stop PrintBridge" (see control.js) still do what they say, the same as
+  on Windows, instead of launchd silently bringing it straight back.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.printbridge.service</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Library/Application Support/PrintBridge/PrintBridge</string>
+		<string>start</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>Crashed</key>
+		<true/>
+	</dict>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardOutPath</key>
+	<string>/Library/Application Support/PrintBridge/data/logs/launchd.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Library/Application Support/PrintBridge/data/logs/launchd.log</string>
+</dict>
+</plist>

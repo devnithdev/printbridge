@@ -1,0 +1,8 @@
+{
+  "name": "relabel-exe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Changes the version info and icon of pkg's Windows base program",
+  "author": "Devnith AE",
+  "dependencies": { "pe-library": "^1.0.1", "resedit": "^2.0.3" }
+}
