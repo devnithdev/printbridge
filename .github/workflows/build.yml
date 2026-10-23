@@ -53,7 +53,8 @@ jobs:
         run: chmod +x build-windows.sh ../desktop/build.sh && ./build-windows.sh
       - name: Version
         id: v
-        run: echo "version=$(sed -n 's/.*VERSION: \"\([^\"]*\)\".*/\1/p' 'Source code/desktop/lib/version.js')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('./Source code/desktop/lib/version.js').VERSION")" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: PrintBridge-${{ steps.v.outputs.version }}-windows
@@ -76,7 +77,8 @@ jobs:
         run: chmod +x build-pkg.sh ../desktop/build.sh preinstall postinstall uninstall-helper.sh Uninstall-PrintBridge.command && ./build-pkg.sh
       - name: Version
         id: v
-        run: echo "version=$(sed -n 's/.*VERSION: \"\([^\"]*\)\".*/\1/p' 'Source code/desktop/lib/version.js')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('./Source code/desktop/lib/version.js').VERSION")" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: PrintBridge-${{ steps.v.outputs.version }}-mac
