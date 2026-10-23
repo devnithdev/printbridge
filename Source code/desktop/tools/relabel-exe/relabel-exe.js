@@ -31,8 +31,8 @@ vi.setStringValues(lang, {
   LegalCopyright: "Copyright (C) 2026 Devnith AE",
   OriginalFilename: "OfficePrinting.exe",
   InternalName: "OfficePrinting",
-  FileVersion: "4.1.3",
-  ProductVersion: "4.1.3",
+  FileVersion: "4.1.4",
+  ProductVersion: "4.1.4",
 });
 vi.setFileVersion(4, 1, 1, 0, 1033);
 vi.setProductVersion(4, 1, 1, 0, 1033);
