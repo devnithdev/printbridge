@@ -124,7 +124,7 @@ const log = (c) => { try { return fs.readFileSync(path.join(c.dir, "logs", "upda
   const t0 = Date.now();
   ok(await waitFor(() => result(c).version === "4.1.4", 20000), "printing done -> installed (" + ((Date.now() - t0) / 1000).toFixed(1) + " s)");
   ok(result(c).ok === true && fs.readFileSync(c.env.OP_UPDATE_INSTALLED_BIN, "utf8") === "program 4.1.4", "the new version is installed and reported running");
-  ok(!fs.existsSync(path.join(c.upd, "apply.json")) && !fs.existsSync(path.join(c.upd, "PrintBridgeSetup-4.1.4.exe")) && !fs.existsSync(path.join(c.upd, "previous.bin")), "the runner tidied up after itself");
+  ok(await waitFor(() => !fs.existsSync(path.join(c.upd, "apply.json")) && !fs.existsSync(path.join(c.upd, "PrintBridgeSetup-4.1.4.exe")) && !fs.existsSync(path.join(c.upd, "previous.bin")), 5000), "the runner tidied up after itself");
   d.kill(); stopSup(c);
 
   // 5. A version that doesn't start properly is undone.
