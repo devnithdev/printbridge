@@ -243,7 +243,7 @@ function startAgent(token) {
 
   // --- the main computer switched off -------------------------------------------------------------------------
   site.kill(); await sleep(500);
-  kv.set("seen", Buffer.from(String(Date.now() - 10 * 60 * 1000))); // as if it went off 10 minutes ago
+  kv.set("seen", Buffer.from(String(Date.now() - 30 * 60 * 1000))); // as if it went off half an hour ago
   await web("POST", "/api/remote/people", {}); // (nothing answers)
   const amaraNext = (await relay("POST", "/api/code", { code: amaraCode })).json;
   ok(amaraNext.online === false, "with the main computer off, the page says the office is offline");

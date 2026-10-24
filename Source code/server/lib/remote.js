@@ -31,7 +31,7 @@ const crypto = require("crypto");
 const durable = require("../../agent/lib/durable");
 
 const POLL_MS = parseInt(process.env.OP_REMOTE_POLL_MS, 10) || 20000;
-const ALIVE_EVERY_MS = 2 * 60 * 1000;
+const ALIVE_EVERY_MS = 10 * 60 * 1000; // one KV write each: the free plan has 1,000 a day for the whole account
 const FULL_EVERY_MS = 10 * 60 * 1000;
 const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // no 0/O, 1/I/L
 const ALLOWED = /\.(pdf|docx?|xlsx?|xlsm|pptx?|odt|ods|odp|rtf|txt|csv|png|jpe?g|gif|bmp|tiff?|webp)$/i;

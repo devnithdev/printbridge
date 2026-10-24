@@ -29,7 +29,8 @@
 // the people. (Setting it up again needs a new CLAIM_CODE.)
 //
 // Free plan limits that matter here (Workers KV): 1,000 writes and 1,000
-// deletes a day - about 150 jobs a day - and 25 MB per value (files are
+// deletes a day for the whole account (shared with any other Workers) - each
+// printout takes about 6, the office saying "online" 144 - and 25 MB per value (files are
 // limited to 20 MB).
 
 const CLAIM_CODE = "__CLAIM_CODE__";
@@ -38,7 +39,7 @@ const MAX_UPLOAD = MAX_FILE + 64 * 1024; // the encrypted file and its header
 const LOCK_AFTER = 10; // wrong codes from one address...
 const LOCK_SECONDS = 15 * 60; // ...lock it for this long
 const STATUS_TTL = 7 * 24 * 3600;
-const OFFLINE_AFTER_MS = 3 * 60 * 1000; // the office collects every ~20 s and says so every 2 minutes
+const OFFLINE_AFTER_MS = 25 * 60 * 1000; // the office collects every ~20 s and says so every 10 minutes (KV writes are scarce)
 const ALLOWED = /\.(pdf|docx?|xlsx?|xlsm|pptx?|odt|ods|odp|rtf|txt|csv|png|jpe?g|gif|bmp|tiff?|webp)$/i;
 
 // --- small helpers -------------------------------------------------------------
@@ -199,7 +200,7 @@ async function officeApi(req, env, url) {
     return json({ ok: true, people: people.length });
   }
 
-  // Jobs waiting. The office says it is online at most every 2 minutes
+  // Jobs waiting. The office says it is online at most every 10 minutes
   // (one write), so polling costs only reads.
   if (path === "/office/queue" && req.method === "GET") {
     if (url.searchParams.get("alive") === "1") await env.PB.put("seen", String(Date.now()));
