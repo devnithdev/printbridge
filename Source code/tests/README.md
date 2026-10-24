@@ -14,6 +14,7 @@ websites (`fake-web.js`) on spare ports, so nothing else needs to be running.
     node t9-takeover.js     "Make this the only main computer": other main computers step down for a newer claim they have checked, never for an unconfirmed one
     node t10-updates.js     automatic updates: only a signed version with a matching installer is installed, only when nothing is printing; one that doesn't start is undone; publish-update.js makes releases the computers accept
     node t11-fixip.js       "keep this computer's address the same": reading Windows/macOS network settings, choosing a free address, refusing bad ones
+    node t12-remote.js      printing from anywhere: pairing, codes (only fingerprints kept), files locked in the browser and unlocked only at the office, limits, approval, switching off, the office being off
 
 These run on Linux/macOS. The Windows-only parts (the Task Scheduler task,
 the installer) are covered by the test checklist in the 4.1.0 hand-over note.

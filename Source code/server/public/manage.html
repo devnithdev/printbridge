@@ -59,6 +59,70 @@
       <div class="hint" id="computerHint">None connected yet.</div>
     </div>
 
+    <div class="card" id="remoteCard">
+      <h2>Printing from anywhere <span class="h2-note">(remote codes)</span></h2>
+      <p style="margin-top:0;font-size:15px">
+        Give a few chosen people a personal code. They open PrintBridge&rsquo;s
+        online drop page from anywhere, type the code and send a file; this
+        computer collects it and prints it. Files are locked in their browser
+        and only this computer can unlock them.
+      </p>
+
+      <div id="rmElsewhere" class="going-to" hidden>
+        To connect the drop page or add people, open this page on the main computer itself.
+      </div>
+
+      <div id="rmSetup" hidden>
+        <label for="rmUrl" style="display:block;font-weight:600;font-size:14px;margin:12px 0 6px">The drop page&rsquo;s address</label>
+        <input type="text" id="rmUrl" placeholder="https://printbridge.yourname.workers.dev" spellcheck="false">
+        <label for="rmClaim" style="display:block;font-weight:600;font-size:14px;margin:12px 0 6px">Pairing code (from when the drop page was set up)</label>
+        <input type="text" id="rmClaim" placeholder="XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off">
+        <div style="margin-top:12px"><button type="button" id="rmConnect">Connect</button></div>
+      </div>
+
+      <div id="rmOn" hidden>
+        <div class="going-to" style="margin-bottom:12px">
+          <span class="dot" id="rmDot"></span><span id="rmState"></span><br>
+          Drop page: <strong><a id="rmLink" href="#" target="_blank" rel="noopener"></a></strong>
+        </div>
+
+        <h3 style="font-size:15px;margin:18px 0 8px">Add a person</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:2;min-width:180px"><label class="hint" for="rmName" style="display:block;margin:0 0 4px">Name</label><input type="text" id="rmName" maxlength="60" placeholder="e.g. Accounts - Kamal"></div>
+          <div style="flex:1;min-width:120px"><label class="hint" for="rmLimit" style="display:block;margin:0 0 4px">Printouts a day (0 = no limit)</label><input type="number" id="rmLimit" min="0" max="500" value="20"></div>
+        </div>
+        <div class="hint" style="margin-top:10px">Printers they may use (none ticked = all):</div>
+        <div id="rmPrinters" style="display:flex;gap:6px 16px;flex-wrap:wrap;margin-top:6px;font-size:14px"></div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px"><input type="checkbox" id="rmHold"> Their printouts wait until someone here presses Print</label>
+        <div style="margin-top:12px"><button type="button" id="rmAdd">Make a code</button></div>
+        <div id="rmNewCode" class="page-message" hidden style="margin-top:12px"></div>
+
+        <h3 style="font-size:15px;margin:22px 0 8px">People with a code</h3>
+        <table id="rmPeople">
+          <thead><tr><th>Name</th><th>Code</th><th>Printers</th><th>A day</th><th>Approval</th><th>Status</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="hint" id="rmPeopleHint">Nobody yet.</div>
+      </div>
+
+      <div id="rmPendingBox" hidden>
+        <h3 style="font-size:15px;margin:22px 0 8px">Waiting for approval</h3>
+        <table id="rmPending">
+          <thead><tr><th>From</th><th>File</th><th>Printer</th><th>Copies</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="rmLogBox" hidden>
+        <h3 style="font-size:15px;margin:22px 0 8px">Recent remote printouts</h3>
+        <table id="rmLog">
+          <thead><tr><th>When</th><th>From</th><th>File</th><th>Printer</th><th>Result</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="hint"><button type="button" class="ghost" id="rmDisconnect" style="padding:0;font-size:13px">Disconnect the drop page</button></p>
+      </div>
+    </div>
+
     <div class="card">
       <h2>The sign for the wall</h2>
       <p style="margin-top:0;font-size:15px">
@@ -75,5 +139,6 @@
   </main>
 
   <script src="/manage.js"></script>
+  <script src="/manage-remote.js"></script>
 </body>
 </html>

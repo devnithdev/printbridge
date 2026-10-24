@@ -36,6 +36,7 @@ jobs:
           node t3-store.js
           node t10-updates.js
           node t11-fixip.js
+          node t12-remote.js
 
   windows:
     name: Windows installer

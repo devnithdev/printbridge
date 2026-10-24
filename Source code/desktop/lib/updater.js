@@ -47,7 +47,8 @@ const https = require("https");
 const crypto = require("crypto");
 const { spawn, execFile } = require("child_process");
 const P = require("./paths");
-const { VERSION } = require("./version");
+// (The checks in tests/t10 pretend to be 4.1.3, whatever the real version is.)
+const VERSION = (process.env.OP_UPDATE_TEST === "1" && process.env.OP_UPDATE_TEST_VERSION) || require("./version").VERSION;
 const CONFIG = require("./update-config");
 const durable = require("../../agent/lib/durable");
 const { logger } = require("./log");

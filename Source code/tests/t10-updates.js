@@ -48,6 +48,7 @@ function computer(opts) {
     OP_UPDATE_URL: "http://127.0.0.1:" + PORT + "/latest.json",
     OP_UPDATE_ALLOW_HTTP: "1",
     OP_UPDATE_TEST: "1",
+    OP_UPDATE_TEST_VERSION: "4.1.3",
     OP_UPDATE_PUBLIC_KEY: spki(goodKey),
     OP_UPDATE_PLATFORM: "windows",
     OP_UPDATE_FIRST_CHECK_MS: "100",
@@ -201,6 +202,15 @@ const log = (c) => { try { return fs.readFileSync(path.join(c.dir, "logs", "upda
   const copy = (rel) => { fs.mkdirSync(path.dirname(path.join(src, rel)), { recursive: true }); fs.cpSync(path.join(ROOT, rel), path.join(src, rel), { recursive: true }); };
   ["desktop/lib", "desktop/package.json", "desktop/tools/relabel-exe/relabel-exe.js", "release", "server/server.js", "server/package.json", "agent/agent.js", "agent/package.json", "installer/OfficePrinting.nsi", "BUILD-ON-MAC.txt", "installer-mac/BUILD-ON-MAC.txt"].forEach(copy);
   fs.writeFileSync(path.join(src, "desktop/lib/update-key.js"), "module.exports = {\n  PUBLIC_KEYS: [\n  ],\n};\n");
+  // (The copy starts at 4.1.3, whatever the real version is now.)
+  const realVersion = require(path.join(ROOT, "desktop/lib/version.js")).VERSION;
+  const at413 = (rel, re, to) => { const f = path.join(src, rel); fs.writeFileSync(f, fs.readFileSync(f, "utf8").replace(re, to)); };
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+  for (const f of walk(src)) {
+    const text = fs.readFileSync(f, "utf8");
+    if (text.includes(realVersion)) fs.writeFileSync(f, text.split(realVersion).join("4.1.3"));
+  }
+  at413("desktop/lib/update-config.js", /MANIFEST_URL: "[^"]+"/, 'MANIFEST_URL: "https://127.0.0.1:9/latest.json"'); // (never the real feed)
   const keyFile = path.join(src, "..", path.basename(src) + "-key", "k.pem");
   const pub = (cmd) => execFileSync(process.execPath, [path.join(src, "release", "publish-update.js")].concat(cmd), { encoding: "utf8" });
   pub(["keygen", "--key", keyFile]);

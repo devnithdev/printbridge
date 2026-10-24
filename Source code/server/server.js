@@ -29,7 +29,7 @@ const help = require("./lib/help");
 const held = require("./lib/held");
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const VERSION = "4.1.4";
+const VERSION = "4.2.0";
 const MAX_UPLOAD_MB = parseInt(process.env.MAX_UPLOAD_MB, 10) || 50;
 const UPLOAD_DIR = jobs.UPLOAD_DIR;
 
@@ -680,6 +680,75 @@ app.post("/api/refresh-address", (req, res) => {
 });
 
 // --- errors ---------------------------------------------------------------
+
+// --- remote printing ("the fax") --------------------------------------------
+//
+// A few chosen people print from anywhere with a personal code, through
+// PrintBridge's online drop page (see lib/remote.js and relay/). Connecting
+// the page and managing the people only works on this computer itself;
+// approving a waiting printout works from anywhere in the office.
+
+const remote = require("./lib/remote");
+
+function fromThisComputer(req) {
+  const a = String(req.socket.remoteAddress || "");
+  return a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
+}
+// Problems are shown on the page as they are (they are written for people).
+function remoteAsync(fn) {
+  return (req, res) => Promise.resolve(fn(req, res)).catch((err) => {
+    res.status(err.status && err.status < 500 ? 400 : 502).json({ error: err.message || "That didn't work." });
+  });
+}
+function onlyHere(req, res, next) {
+  if (fromThisComputer(req)) return next();
+  res.status(403).json({ error: "Open this page on the main computer itself to change remote printing." });
+}
+
+app.get("/api/remote", (req, res) => {
+  const s = remote.status();
+  if (!fromThisComputer(req)) {
+    res.json({ local: false, connected: s.connected, pending: s.pending, printers: s.printers });
+    return;
+  }
+  res.json(Object.assign({ local: true }, s));
+});
+app.post("/api/remote/connect", onlyHere, remoteAsync(async (req, res) => {
+  await remote.connect(req.body.relayUrl, req.body.claim);
+  res.json({ ok: true });
+}));
+app.post("/api/remote/disconnect", onlyHere, (req, res) => {
+  remote.disconnect();
+  res.json({ ok: true });
+});
+app.post("/api/remote/people", onlyHere, remoteAsync(async (req, res) => {
+  res.json(await remote.addPerson(req.body || {}));
+}));
+app.post("/api/remote/people/:id", onlyHere, remoteAsync(async (req, res) => {
+  res.json({ person: await remote.updatePerson(req.params.id, req.body || {}) });
+}));
+app.post("/api/remote/people/:id/new-code", onlyHere, remoteAsync(async (req, res) => {
+  res.json(await remote.newCodeFor(req.params.id));
+}));
+app.delete("/api/remote/people/:id", onlyHere, remoteAsync(async (req, res) => {
+  await remote.removePerson(req.params.id);
+  res.json({ ok: true });
+}));
+app.post("/api/remote/pending/:id/approve", remoteAsync(async (req, res) => {
+  await remote.approve(req.params.id, req.body && req.body.printer);
+  res.json({ ok: true });
+}));
+app.post("/api/remote/pending/:id/reject", (req, res) => {
+  remote.reject(req.params.id);
+  res.json({ ok: true });
+});
+
+remote.start({
+  file: path.join(path.dirname(require("./lib/store").DATA_FILE), "remote.json"),
+  db, jobs, agents, readyToPrint,
+  uploadDir: UPLOAD_DIR,
+  log: (line) => console.log("  " + line),
+});
 
 app.use((err, req, res, next) => {
   if (req.file && req.file.path) fs.unlink(req.file.path, () => {});
