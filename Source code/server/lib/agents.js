@@ -57,12 +57,14 @@ function rememberPrinters(agent, printers) {
         agentId: agent.id,
         name,
         hidden: false,
+        colorMode: "auto",
         capabilities: null,
         updatedAt: 0,
       };
       db.printers.push(record);
     }
-    record.capabilities = incoming.capabilities || null;
+    record.reportedCapabilities = incoming.capabilities || null;
+    applyColorMode(record);
     record.updatedAt = Date.now();
   }
 
@@ -75,6 +77,34 @@ function rememberPrinters(agent, printers) {
 
   save();
   events.emit("printers-changed");
+}
+
+// Colour or black and white. The computer guesses (agent/lib/printers.js),
+// and the guess can be wrong, so the Manage page can say for sure:
+// "auto" believes the computer, "color" and "mono" overrule it. The
+// result goes into capabilities, so the print page, the checks before
+// printing and failover all follow it without knowing about this.
+const COLOR_MODES = new Set(["auto", "color", "mono"]);
+
+function applyColorMode(record) {
+  // Printers saved before this existed only have what the computer said.
+  if (record.reportedCapabilities === undefined) record.reportedCapabilities = record.capabilities || null;
+  const mode = COLOR_MODES.has(record.colorMode) ? record.colorMode : "auto";
+  const reported = record.reportedCapabilities;
+  if (mode === "auto") {
+    record.capabilities = reported;
+    return;
+  }
+  record.capabilities = Object.assign({}, reported || {}, { color: mode === "color" });
+}
+
+function setColorMode(record, mode) {
+  if (!COLOR_MODES.has(mode)) return false;
+  record.colorMode = mode;
+  applyColorMode(record);
+  save();
+  events.emit("printers-changed");
+  return true;
 }
 
 // The printer list the print page shows. Hidden printers are ones someone
@@ -111,6 +141,11 @@ function listPrintersForManaging() {
         agentId: p.agentId,
         online: isOnline(p.agentId),
         hidden: !!p.hidden,
+        colorMode: COLOR_MODES.has(p.colorMode) ? p.colorMode : "auto",
+        // What the computer itself said (true, false, or null: doesn't know).
+        reportedColor: p.reportedCapabilities === undefined
+          ? (p.capabilities ? p.capabilities.color : null)
+          : (p.reportedCapabilities ? p.reportedCapabilities.color : null),
         capabilities: p.capabilities,
       };
     })
@@ -265,6 +300,7 @@ module.exports = {
   listPrintersForManaging,
   findPrinter,
   canPrintTo,
+  setColorMode,
   findAgentByToken,
   printerId,
 };

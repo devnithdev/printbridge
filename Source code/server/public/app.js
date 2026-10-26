@@ -916,7 +916,7 @@ function renderPrinterPick() {
     const div = document.createElement("div");
     div.className = "going-to";
     div.innerHTML =
-      "Going to <strong>" + escapeHtml(only.name) + "</strong>" +
+      "Going to <strong>" + escapeHtml(only.name) + "</strong>" + colorNote(only) +
       (only.online ? "" : ' <span class="offline-note">(it\'s off right now &mdash; this will wait)</span>');
     box.appendChild(div);
     updatePrintButton();
@@ -937,7 +937,7 @@ function renderPrinterPick() {
     option.innerHTML =
       '<span class="dot ' + (printer.online ? "on" : "off") + '"></span>' +
       '<span class="grow"><span class="pname">' + escapeHtml(printer.name) + "</span>" +
-      '<br><span class="pmeta">' + escapeHtml(printer.computerName) +
+      '<br><span class="pmeta">' + escapeHtml(printer.computerName) + colorNote(printer) +
       (printer.online ? "" : " &mdash; off right now") + "</span></span>";
     option.onclick = () => {
       chosenPrinterId = printer.id;
@@ -950,6 +950,14 @@ function renderPrinterPick() {
 
   box.appendChild(pick);
   updatePrintButton();
+}
+
+// " · Colour" or " · Black & white" after the computer's name, when known.
+function colorNote(printer) {
+  const color = printer.capabilities && printer.capabilities.color;
+  if (color === true) return " &middot; Colour";
+  if (color === false) return " &middot; Black &amp; white";
+  return "";
 }
 
 function selectedPrinter() {

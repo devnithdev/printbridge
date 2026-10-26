@@ -58,15 +58,17 @@ async function loadPrinters() {
     computerCell.textContent = printer.computerName;
     tr.appendChild(computerCell);
 
+    tr.appendChild(colorCell(printer));
+
     const showCell = document.createElement("td");
-    // Says what the printer is now, and what pressing it will do.
+    // Says what the printer is now, and what pressing it will do. Green
+    // Show and amber Hide, so the two can't be mixed up at a glance.
     const state = document.createElement("span");
-    state.className = "hint";
-    state.style.marginRight = "10px";
+    state.className = "show-state " + (printer.hidden ? "is-hidden" : "is-shown");
     state.textContent = printer.hidden ? "Hidden" : "Shown";
     showCell.appendChild(state);
     const toggle = document.createElement("button");
-    toggle.className = "secondary";
+    toggle.className = printer.hidden ? "show-btn" : "hide-btn";
     toggle.textContent = printer.hidden ? "Show" : "Hide";
     toggle.title = printer.hidden ? "Show this printer on the print page" : "Hide this printer from the print page";
     toggle.onclick = async () => {
@@ -92,6 +94,50 @@ async function loadPrinters() {
   $("printerHint").textContent = list.length
     ? ""
     : "No printers yet. Run PrintBridge Setup on the computer that has a printer.";
+}
+
+// Colour or black and white only. "Automatic" goes by what the printer's
+// computer says; the other two overrule it when that is wrong.
+const COLOR_CHOICES = [["auto", "Automatic"], ["color", "Colour"], ["mono", "Black & white"]];
+
+function colorCell(printer) {
+  const cell = document.createElement("td");
+  const seg = document.createElement("div");
+  seg.className = "seg color-seg";
+  for (const [mode, label] of COLOR_CHOICES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    if (printer.colorMode === mode) button.className = "on";
+    button.onclick = async () => {
+      if (printer.colorMode === mode) return;
+      for (const b of seg.querySelectorAll("button")) b.disabled = true;
+      try {
+        await api("/api/manage/printers/" + encodeURIComponent(printer.id) + "/color", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode }),
+        });
+        await loadPrinters();
+      } catch (err) {
+        for (const b of seg.querySelectorAll("button")) b.disabled = false;
+        setPageMessage(err.message, "error");
+      }
+    };
+    seg.appendChild(button);
+  }
+  cell.appendChild(seg);
+
+  const note = document.createElement("div");
+  note.className = "hint";
+  note.style.marginTop = "4px";
+  const found = printer.reportedColor === true ? "colour"
+    : printer.reportedColor === false ? "black & white" : "not known";
+  note.textContent = printer.colorMode === "auto"
+    ? "The computer says: " + found
+    : "Set by hand (the computer says: " + found + ")";
+  cell.appendChild(note);
+  return cell;
 }
 
 async function loadComputers() {

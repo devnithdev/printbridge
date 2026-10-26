@@ -244,6 +244,16 @@ button.ghost {
   border: 1px solid var(--line); padding: 5px 12px; font-size: 13px; font-weight: 450;
 }
 button:disabled { opacity: .5; cursor: not-allowed; }
+/* Printers & setup: Show is green, Hide is amber, so they look different. */
+button.show-btn { background: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-line); font-weight: 550; }
+button.show-btn:hover { background: var(--ok-line); }
+button.hide-btn { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--warn-line); font-weight: 550; }
+button.hide-btn:hover { background: var(--warn-line); }
+.show-state { display: inline-block; margin-right: 10px; font-size: 13px; font-weight: 600; }
+.show-state.is-shown { color: var(--ok); }
+.show-state.is-hidden { color: var(--muted); }
+.show-state::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: currentColor; vertical-align: 1px; }
+.color-seg button { padding: 6px 8px; font-size: 13px; white-space: nowrap; }
 
 .big-print {
   width: 100%;

@@ -21,7 +21,7 @@ const DATA_FILE = path.join(DATA_DIR, "db.json");
 
 const EMPTY = {
   agents: [],     // { id, name, tokenHash, platform, createdAt, lastSeenAt }
-  printers: [],   // { id, agentId, name, capabilities, hidden, updatedAt }
+  printers: [],   // { id, agentId, name, capabilities, reportedCapabilities, colorMode, hidden, updatedAt }
   jobs: [],       // { id, deviceId, label, fileName, printerId, ... }
   helpAlerts: [], // { id, label, message, createdAt, resolved, resolvedAt }
 };

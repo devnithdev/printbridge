@@ -515,6 +515,20 @@ app.post("/api/manage/printers/:id/hidden", (req, res) => {
   res.json({ ok: true });
 });
 
+// Colour or black and white only ("auto" = what the printer's computer says).
+app.post("/api/manage/printers/:id/color", (req, res) => {
+  const printer = agents.findPrinter(req.params.id);
+  if (!printer) {
+    res.status(404).json({ error: "No such printer." });
+    return;
+  }
+  if (!agents.setColorMode(printer, req.body && req.body.mode)) {
+    res.status(400).json({ error: "Choose colour, black and white, or automatic." });
+    return;
+  }
+  res.json({ ok: true });
+});
+
 app.get("/api/manage/computers", (req, res) => {
   res.json(
     db.agents.map((a) => ({
