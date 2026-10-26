@@ -5,3 +5,10 @@ Updates/
 *.pem
 .DS_Store
 node_modules/
+
+# release files made on the Mac
+Updates/
+/PrintBridgeSetup.exe
+/PrintBridge.pkg
+/PrintBridge-*.dmg
+.printbridge.bundle
