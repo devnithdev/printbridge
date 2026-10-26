@@ -157,11 +157,15 @@ function startAgent(token) {
   ok((await relay("GET", "/office/queue")).status === 401 && (await call(RELAY, "GET", "/office/queue", undefined, {})).status === 401, "the office side of the page refuses anyone without the office's secret");
 
   // --- managing people is only for the main computer itself --------------------------------------
-  const lan = { host: "192.0.2.2" };
-  ok((await call(WEB, "POST", "/api/remote/people", { name: "Guest" }, lan)).status === 403, "from another computer on the network, adding a person is refused");
-  ok((await call(WEB, "POST", "/api/remote/connect", { relayUrl: "http://127.0.0.1:" + RELAY, claim: "x" }, lan)).status === 403, "...and so is connecting the page");
+  // "Another computer on the network": this machine's own network address
+  // (not 127.0.0.1), so the website sees the request as coming from outside.
+  const lanIp = Object.values(os.networkInterfaces()).flat().find((a) => a && a.family === "IPv4" && !a.internal);
+  const lan = { host: lanIp ? lanIp.address : "127.0.0.1" };
+  if (!lanIp) console.log("  (no network card: skipping the other-computer checks)");
+  if (lanIp) ok((await call(WEB, "POST", "/api/remote/people", { name: "Guest" }, lan)).status === 403, "from another computer on the network, adding a person is refused");
+  if (lanIp) ok((await call(WEB, "POST", "/api/remote/connect", { relayUrl: "http://127.0.0.1:" + RELAY, claim: "x" }, lan)).status === 403, "...and so is connecting the page");
   const lanView = (await call(WEB, "GET", "/api/remote", undefined, lan)).json;
-  ok(lanView.local === false && lanView.people === undefined && lanView.log === undefined, "...and it isn't shown the people or the log");
+  if (lanIp) ok(lanView.local === false && lanView.people === undefined && lanView.log === undefined, "...and it isn't shown the people or the log");
 
   r = await web("POST", "/api/remote/people", { name: "Amara", printers: ["Front desk"], dailyLimit: 3 });
   const amara = r.json.person, amaraCode = r.json.code;
