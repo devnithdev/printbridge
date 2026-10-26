@@ -72,6 +72,19 @@
         To connect the drop page or add people, open this page on the main computer itself.
       </div>
 
+      <div id="rmLocked" hidden>
+        <div class="going-to" style="margin-bottom:10px">&#128274; Remote printing settings are locked. Type the lock code to see or change the people, their limits and the drop page.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input type="password" id="rmUnlockCode" placeholder="Lock code" spellcheck="false" autocomplete="off" style="flex:1;min-width:180px;max-width:280px">
+          <button type="button" id="rmUnlock">Unlock</button>
+        </div>
+      </div>
+
+      <div id="rmLockBar" hidden><div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:6px 0 12px">
+        <span class="hint" id="rmLockNote" style="margin:0"></span>
+        <button type="button" class="secondary" id="rmLock">&#128274; Lock</button>
+      </div></div>
+
       <div id="rmSetup" hidden>
         <label for="rmUrl" style="display:block;font-weight:600;font-size:14px;margin:12px 0 6px">The drop page&rsquo;s address</label>
         <input type="text" id="rmUrl" placeholder="https://printbridge.yourname.workers.dev" spellcheck="false">

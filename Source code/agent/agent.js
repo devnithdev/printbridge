@@ -40,7 +40,7 @@ const SETTINGS_DIR = process.env.PRINT_AGENT_DIR || BASE_DIR;
 const CONFIG_FILE = path.join(SETTINGS_DIR, "config.json");
 const STATUS_FILE = path.join(SETTINGS_DIR, "status.json");
 const DOWNLOAD_DIR = path.join(SETTINGS_DIR, "downloads");
-const VERSION = "4.2.0";
+const VERSION = "4.2.1";
 
 fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 

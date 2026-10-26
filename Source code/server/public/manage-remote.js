@@ -131,7 +131,7 @@
   }
 
   function logTable(s) {
-    $("rmLogBox").hidden = !s.local || !s.connected;
+    $("rmLogBox").hidden = !s.local || s.locked || !s.connected;
     const body = $("rmLog").querySelector("tbody");
     body.innerHTML = "";
     for (const e of s.log || []) {
@@ -148,10 +148,15 @@
     let s;
     try { s = await api("/api/remote"); } catch (err) { return; }
     last = s;
+    const open = s.local && !s.locked;
     $("rmElsewhere").hidden = s.local;
-    $("rmSetup").hidden = !s.local || s.connected;
-    $("rmOn").hidden = !s.local || !s.connected;
-    if (s.local && s.connected) {
+    $("rmLocked").hidden = !s.local || !s.locked;
+    $("rmLockBar").hidden = !open;
+    if (open) $("rmLockNote").textContent = "Unlocked. It locks again by itself at " + new Date(s.unlockedUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ".";
+    $("rmSetup").hidden = !open || s.connected;
+    $("rmOn").hidden = !open || !s.connected;
+    if (!open) $("rmNewCode").hidden = true;
+    if (open && s.connected) {
       $("rmDot").className = "dot " + (s.online ? "on" : "off");
       $("rmState").textContent = s.online ? "Connected: collecting printouts" : (s.lastError ? "Can't reach the drop page: " + s.lastError : "Connecting...");
       $("rmLink").textContent = s.relayUrl; $("rmLink").href = s.relayUrl;
@@ -161,6 +166,21 @@
     pendingTable(s);
     logTable(s);
   }
+
+  async function doUnlock() {
+    const b = $("rmUnlock");
+    b.disabled = true;
+    try {
+      await post("/api/remote/unlock", { code: $("rmUnlockCode").value });
+      $("rmUnlockCode").value = "";
+      setPageMessage("", "");
+      await refresh();
+    } catch (err) { setPageMessage(err.message, "error"); }
+    b.disabled = false;
+  }
+  $("rmUnlock").onclick = doUnlock;
+  $("rmUnlockCode").addEventListener("keydown", (e) => { if (e.key === "Enter") doUnlock(); });
+  $("rmLock").onclick = async () => { await post("/api/remote/lock"); await refresh(); };
 
   $("rmConnect").onclick = async () => {
     const b = $("rmConnect");

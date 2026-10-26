@@ -47,6 +47,41 @@ let lastConfigSig = "";
 let lastError = "";
 let lastPollOk = 0;
 
+// --- the lock ---------------------------------------------------------------------------------
+// Seeing or changing the people, their limits and the drop page needs the
+// lock code, even on the main computer itself. It starts locked, locks again
+// after 30 minutes and whenever the website restarts. Only a fingerprint of
+// the code is kept (scrypt), never the code. Waiting printouts can still be
+// approved while it is locked.
+const LOCK_SALT = "printbridge-remote-lock-v1";
+const DEFAULT_LOCK = "1a692c9b624f0a2a94c5e92880c7cf8a1966d15966c6e6768af03bc6590f4cfe";
+const UNLOCK_MINUTES = 30;
+let unlockedUntil = 0;
+let wrongTries = [];
+const lockPrint = (code) => crypto.scryptSync(normal(code), LOCK_SALT, 32, { N: 16384, r: 8, p: 1 }).toString("hex");
+
+function isLocked() {
+  return Date.now() >= unlockedUntil;
+}
+function unlockSettings(code) {
+  const now = Date.now();
+  wrongTries = wrongTries.filter((t) => now - t < 15 * 60 * 1000);
+  if (wrongTries.length >= 5) {
+    const e = new Error("Too many wrong codes. Try again in 15 minutes."); e.status = 429; throw e;
+  }
+  const want = Buffer.from((state && state.lockHash) || DEFAULT_LOCK, "hex");
+  const got = Buffer.from(lockPrint(code), "hex");
+  if (!normal(code) || got.length !== want.length || !crypto.timingSafeEqual(got, want)) {
+    wrongTries.push(now);
+    const e = new Error("That isn't the lock code."); e.status = 403; throw e;
+  }
+  wrongTries = [];
+  unlockedUntil = now + UNLOCK_MINUTES * 60 * 1000;
+}
+function lockSettings() {
+  unlockedUntil = 0;
+}
+
 const blank = () => ({ relayUrl: "", token: "", privateKey: "", publicKey: "", people: [], pending: [], log: [], tracking: [], handled: {} });
 
 function load() {
@@ -320,7 +355,10 @@ function publicPerson(p) {
 }
 
 function status() {
-  return {
+  const locked = isLocked();
+  const s = {
+    locked,
+    unlockedUntil: locked ? 0 : unlockedUntil,
     connected: connected(),
     relayUrl: state.relayUrl,
     online: connected() && Date.now() - lastPollOk < 3 * POLL_MS,
@@ -330,6 +368,8 @@ function status() {
     log: state.log.slice(0, 30),
     printers: printerNames(),
   };
+  if (locked) { delete s.people; delete s.log; delete s.relayUrl; }
+  return s;
 }
 
 async function connect(relayUrl, claim) {
@@ -452,4 +492,4 @@ function stop() {
   timer = null;
 }
 
-module.exports = { start, stop, poll, status, connect, disconnect, addPerson, updatePerson, newCodeFor, removePerson, approve, reject, hashCode, newCode };
+module.exports = { isLocked, unlockSettings, lockSettings, start, stop, poll, status, connect, disconnect, addPerson, updatePerson, newCodeFor, removePerson, approve, reject, hashCode, newCode };

@@ -141,8 +141,29 @@ function startAgent(token) {
   startAgent(comp.json.token);
   ok(await waitFor(async () => (await web("GET", "/api/remote")).json.printers.length === 2, 10000), "a printer computer with two printers is online");
 
+  // --- the lock ------------------------------------------------------------------------------
+  let r = await web("GET", "/api/remote");
+  ok(r.json.locked === true && r.json.people === undefined && r.json.log === undefined, "remote printing settings start locked: the people and the log aren't shown");
+  ok((await web("POST", "/api/remote/connect", { relayUrl: "http://127.0.0.1:" + RELAY, claim: "TEST-PAIR-CODE" })).status === 423 &&
+    (await web("POST", "/api/remote/people", { name: "Sneaky" })).status === 423, "while locked, nothing can be changed, even on the main computer");
+  r = await web("POST", "/api/remote/unlock", { code: "WRONG-WRONG-WRONG" });
+  ok(r.status === 400 && /isn't the lock code/.test(r.json.error) && (await web("GET", "/api/remote")).json.locked, "a wrong lock code doesn't unlock");
+  r = await web("POST", "/api/remote/unlock", { code: "u2mj nu4j 6pya" });
+  ok(r.status === 200 && (await web("GET", "/api/remote")).json.locked === false, "the lock code unlocks it (typed any old way)");
+  await web("POST", "/api/remote/lock");
+  ok((await web("GET", "/api/remote")).json.locked === true, "the Lock button locks it again");
+  for (let i = 0; i < 5; i++) await web("POST", "/api/remote/unlock", { code: "NOPE-NOPE-" + i });
+  r = await web("POST", "/api/remote/unlock", { code: "U2MJ-NU4J-6PYA" });
+  ok(r.status === 400 && /Too many/.test(r.json.error), "after 5 wrong lock codes, even the right one waits 15 minutes");
+  site.kill(); await sleep(500);
+  site = startWebsite();
+  await waitFor(async () => (await web("GET", "/api/remote")).status === 200, 20000);
+  startAgent(comp.json.token);
+  await waitFor(async () => (await web("GET", "/api/remote")).json.printers.length === 2, 10000);
+  await web("POST", "/api/remote/unlock", { code: "U2MJ-NU4J-6PYA" });
+
   // --- pairing -----------------------------------------------------------------------------
-  let r = await web("POST", "/api/remote/connect", { relayUrl: "http://127.0.0.1:" + RELAY, claim: "WRONG-CODE-0000" });
+  r = await web("POST", "/api/remote/connect", { relayUrl: "http://127.0.0.1:" + RELAY, claim: "WRONG-CODE-0000" });
   ok(r.status === 400 && /pairing code/i.test(r.json.error) && !(await web("GET", "/api/remote")).json.connected, "a wrong pairing code is refused and nothing is saved");
   r = await web("POST", "/api/remote/connect", { relayUrl: "http://printbridge.example.com", claim: "TEST-PAIR-CODE" });
   ok(r.status >= 400 && /https/.test(r.json.error), "a drop page address without https is refused");
@@ -165,6 +186,7 @@ function startAgent(token) {
   if (lanIp) ok((await call(WEB, "POST", "/api/remote/people", { name: "Guest" }, lan)).status === 403, "from another computer on the network, adding a person is refused");
   if (lanIp) ok((await call(WEB, "POST", "/api/remote/connect", { relayUrl: "http://127.0.0.1:" + RELAY, claim: "x" }, lan)).status === 403, "...and so is connecting the page");
   const lanView = (await call(WEB, "GET", "/api/remote", undefined, lan)).json;
+  if (lanIp) ok((await call(WEB, "POST", "/api/remote/unlock", { code: "U2MJ-NU4J-6PYA" }, lan)).status === 403, "...and unlocking only works on the main computer itself");
   if (lanIp) ok(lanView.local === false && lanView.people === undefined && lanView.log === undefined, "...and it isn't shown the people or the log");
 
   r = await web("POST", "/api/remote/people", { name: "Amara", printers: ["Front desk"], dailyLimit: 3 });

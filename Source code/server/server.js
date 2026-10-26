@@ -29,7 +29,7 @@ const help = require("./lib/help");
 const held = require("./lib/held");
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const VERSION = "4.2.0";
+const VERSION = "4.2.1";
 const MAX_UPLOAD_MB = parseInt(process.env.MAX_UPLOAD_MB, 10) || 50;
 const UPLOAD_DIR = jobs.UPLOAD_DIR;
 
@@ -718,33 +718,46 @@ function onlyHere(req, res, next) {
   if (fromThisComputer(req)) return next();
   res.status(403).json({ error: "Open this page on the main computer itself to change remote printing." });
 }
+// Needs the lock code first (see "the lock" in lib/remote.js).
+function unlocked(req, res, next) {
+  if (!remote.isLocked()) return next();
+  res.status(423).json({ error: "Remote printing settings are locked. Unlock them with the lock code first.", locked: true });
+}
+app.post("/api/remote/unlock", onlyHere, remoteAsync(async (req, res) => {
+  remote.unlockSettings(String((req.body && req.body.code) || ""));
+  res.json({ ok: true });
+}));
+app.post("/api/remote/lock", onlyHere, (req, res) => {
+  remote.lockSettings();
+  res.json({ ok: true });
+});
 
 app.get("/api/remote", (req, res) => {
   const s = remote.status();
   if (!fromThisComputer(req)) {
-    res.json({ local: false, connected: s.connected, pending: s.pending, printers: s.printers });
+    res.json({ local: false, locked: s.locked, connected: s.connected, pending: s.pending, printers: s.printers });
     return;
   }
   res.json(Object.assign({ local: true }, s));
 });
-app.post("/api/remote/connect", onlyHere, remoteAsync(async (req, res) => {
+app.post("/api/remote/connect", onlyHere, unlocked, remoteAsync(async (req, res) => {
   await remote.connect(req.body.relayUrl, req.body.claim);
   res.json({ ok: true });
 }));
-app.post("/api/remote/disconnect", onlyHere, (req, res) => {
+app.post("/api/remote/disconnect", onlyHere, unlocked, (req, res) => {
   remote.disconnect();
   res.json({ ok: true });
 });
-app.post("/api/remote/people", onlyHere, remoteAsync(async (req, res) => {
+app.post("/api/remote/people", onlyHere, unlocked, remoteAsync(async (req, res) => {
   res.json(await remote.addPerson(req.body || {}));
 }));
-app.post("/api/remote/people/:id", onlyHere, remoteAsync(async (req, res) => {
+app.post("/api/remote/people/:id", onlyHere, unlocked, remoteAsync(async (req, res) => {
   res.json({ person: await remote.updatePerson(req.params.id, req.body || {}) });
 }));
-app.post("/api/remote/people/:id/new-code", onlyHere, remoteAsync(async (req, res) => {
+app.post("/api/remote/people/:id/new-code", onlyHere, unlocked, remoteAsync(async (req, res) => {
   res.json(await remote.newCodeFor(req.params.id));
 }));
-app.delete("/api/remote/people/:id", onlyHere, remoteAsync(async (req, res) => {
+app.delete("/api/remote/people/:id", onlyHere, unlocked, remoteAsync(async (req, res) => {
   await remote.removePerson(req.params.id);
   res.json({ ok: true });
 }));
