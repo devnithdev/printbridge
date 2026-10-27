@@ -87,9 +87,10 @@ const APPLY = () => path.join(updateDir(), "apply.json"); // the runner's instru
 const SETTINGS = () => path.join(P.DATA_DIR, "update-settings.json");
 
 function platformKey() {
+  if (process.env.OP_UPDATE_PLATFORM) return process.env.OP_UPDATE_PLATFORM;
   if (P.IS_WINDOWS) return "windows";
   if (P.IS_MAC) return "mac";
-  return process.env.OP_UPDATE_PLATFORM || os.platform();
+  return os.platform();
 }
 
 // --- versions and signatures ----------------------------------------------
@@ -352,7 +353,6 @@ function runnerTaskXml(runner, dir) {
   <Principals>
     <Principal id="Author">
       <UserId>S-1-5-18</UserId>
-      <LogonType>ServiceAccount</LogonType>
       <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>

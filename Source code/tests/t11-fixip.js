@@ -34,8 +34,8 @@ ok(/isn't a network address/.test(F.problemWith("192.168.1.300", win)) && /isn't
 ok(F.prefixOf("255.255.255.0") === 24 && F.prefixOf("255.255.252.0") === 22 && F.prefixOf("255.0.255.0") === 0, "masks convert to prefix lengths (and a broken mask is rejected)");
 
 (async () => {
-  // On a computer that isn't Windows or a Mac nothing is changed.
-  const r = await F.apply("");
+  // When no connection is found, nothing is changed.
+  const r = await F.apply("", { found: false });
   ok(r.ok === false && /No network connection was found/.test(r.message), "where the network can't be read, nothing is changed and it says so");
   ok((await F.restore()).ok, "restoring when Setup never fixed an address does nothing");
   console.log(n + " checks passed");

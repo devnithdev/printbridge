@@ -31,6 +31,9 @@ const SCHTASKS = path.join(process.env.SystemRoot || process.env.windir || "C:\\
 const xmlText = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function taskXml(exePath) {
+  // The system account is named by its fixed id (S-1-5-18) alone, with no
+  // <LogonType>: some Windows versions refuse "ServiceAccount" there ("(15,35):
+  // LogonType:ServiceAccount") and the task was never added.
   const B = require("./brand");
   return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -46,7 +49,6 @@ function taskXml(exePath) {
   <Principals>
     <Principal id="Author">
       <UserId>S-1-5-18</UserId>
-      <LogonType>ServiceAccount</LogonType>
       <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>

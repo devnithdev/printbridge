@@ -217,7 +217,7 @@ const log = (c) => { try { return fs.readFileSync(path.join(c.dir, "logs", "upda
   const keys = require(path.join(src, "desktop/lib/update-key.js")).PUBLIC_KEYS;
   ok(keys.length === 1 && fs.existsSync(keyFile) && (fs.statSync(keyFile).mode & 0o077) === 0, "keygen: private key kept outside the source (only its owner can read it), public half put in update-key.js");
   let refused = false;
-  try { pub(["keygen"]); } catch (e) { refused = /already trusts a signing key/.test(String(e.stderr)); }
+  try { pub(["keygen", "--key", path.join(os.tmpdir(), "nonexistent-key-" + process.pid + ".pem")]); } catch (e) { refused = /already trusts a signing key/.test(String(e.stderr)); }
   ok(refused, "keygen won't quietly replace a key the build already trusts");
   pub(["bump", "4.1.4"]);
   const nsi = fs.readFileSync(path.join(src, "installer/OfficePrinting.nsi"), "utf8");
