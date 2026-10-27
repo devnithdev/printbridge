@@ -15,6 +15,5 @@ Updates/
 .pb-update.bundle
 
 # Local project notes and internal guides
-CLAUDE.md
-GEMINI.md
+*.local.md
 *.docx
