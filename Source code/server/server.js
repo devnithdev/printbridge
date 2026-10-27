@@ -29,7 +29,7 @@ const help = require("./lib/help");
 const held = require("./lib/held");
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const VERSION = "4.2.2";
+const VERSION = "4.2.3";
 const MAX_UPLOAD_MB = parseInt(process.env.MAX_UPLOAD_MB, 10) || 50;
 const UPLOAD_DIR = jobs.UPLOAD_DIR;
 
@@ -524,6 +524,20 @@ app.post("/api/manage/printers/:id/color", (req, res) => {
   }
   if (!agents.setColorMode(printer, req.body && req.body.mode)) {
     res.status(400).json({ error: "Choose colour, black and white, or automatic." });
+    return;
+  }
+  res.json({ ok: true });
+});
+
+// Printer type: automatic/none, inkjet, laser, dotmatrix, thermal.
+app.post("/api/manage/printers/:id/type", (req, res) => {
+  const printer = agents.findPrinter(req.params.id);
+  if (!printer) {
+    res.status(404).json({ error: "No such printer." });
+    return;
+  }
+  if (!agents.setPrinterType(printer, req.body && req.body.type)) {
+    res.status(400).json({ error: "Choose a valid printer type." });
     return;
   }
   res.json({ ok: true });

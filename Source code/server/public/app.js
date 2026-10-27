@@ -952,12 +952,27 @@ function renderPrinterPick() {
   updatePrintButton();
 }
 
-// " · Colour" or " · Black & white" after the computer's name, when known.
-function colorNote(printer) {
+// " · Laser · Colour" etc. after the computer's name, when known.
+const TYPE_NAMES = {
+  inkjet: "Inkjet",
+  laser: "Laser",
+  dotmatrix: "Dot matrix",
+  thermal: "Thermal / Receipt",
+};
+
+function printerMetaNotes(printer) {
+  let note = "";
+  if (printer.printerType && TYPE_NAMES[printer.printerType]) {
+    note += " &middot; " + TYPE_NAMES[printer.printerType];
+  }
   const color = printer.capabilities && printer.capabilities.color;
-  if (color === true) return " &middot; Colour";
-  if (color === false) return " &middot; Black &amp; white";
-  return "";
+  if (color === true) note += " &middot; Colour";
+  else if (color === false) note += " &middot; Black &amp; white";
+  return note;
+}
+
+function colorNote(printer) {
+  return printerMetaNotes(printer);
 }
 
 function selectedPrinter() {

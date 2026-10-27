@@ -51,7 +51,7 @@ SetCompressorDictSize 64
 !define TAGLINE "Print from any computer to any printer in the office."
 !define COMPANY "Devnith AE"
 !define CREDIT "${U+2615} by @devnithdev"
-!define VERSION "4.2.2"
+!define VERSION "4.2.3"
 !define EXE "OfficePrinting.exe"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OfficePrinting"
 !define RUNKEY "Software\Microsoft\Windows\CurrentVersion\Run"

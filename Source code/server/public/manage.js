@@ -58,6 +58,7 @@ async function loadPrinters() {
     computerCell.textContent = printer.computerName;
     tr.appendChild(computerCell);
 
+    tr.appendChild(typeCell(printer));
     tr.appendChild(colorCell(printer));
 
     const showCell = document.createElement("td");
@@ -94,6 +95,45 @@ async function loadPrinters() {
   $("printerHint").textContent = list.length
     ? ""
     : "No printers yet. Run PrintBridge Setup on the computer that has a printer.";
+}
+
+// Printer type choices.
+const TYPE_CHOICES = [
+  ["auto", "Automatic"],
+  ["inkjet", "Inkjet"],
+  ["laser", "Laser"],
+  ["dotmatrix", "Dot matrix"],
+  ["thermal", "Thermal / Receipt"],
+];
+
+function typeCell(printer) {
+  const cell = document.createElement("td");
+  const sel = document.createElement("select");
+  sel.className = "type-select";
+  const current = printer.printerType || "auto";
+  for (const [val, label] of TYPE_CHOICES) {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = label;
+    if (val === current) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  sel.onchange = async () => {
+    sel.disabled = true;
+    try {
+      await api("/api/manage/printers/" + encodeURIComponent(printer.id) + "/type", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: sel.value }),
+      });
+      await loadPrinters();
+    } catch (err) {
+      sel.disabled = false;
+      setPageMessage(err.message, "error");
+    }
+  };
+  cell.appendChild(sel);
+  return cell;
 }
 
 // Colour or black and white only. "Automatic" goes by what the printer's

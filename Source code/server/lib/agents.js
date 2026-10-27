@@ -85,6 +85,7 @@ function rememberPrinters(agent, printers) {
 // result goes into capabilities, so the print page, the checks before
 // printing and failover all follow it without knowing about this.
 const COLOR_MODES = new Set(["auto", "color", "mono"]);
+const PRINTER_TYPES = new Set(["auto", "inkjet", "laser", "dotmatrix", "thermal"]);
 
 function applyColorMode(record) {
   // Printers saved before this existed only have what the computer said.
@@ -107,6 +108,14 @@ function setColorMode(record, mode) {
   return true;
 }
 
+function setPrinterType(record, type) {
+  if (!PRINTER_TYPES.has(type)) return false;
+  record.printerType = type;
+  save();
+  events.emit("printers-changed");
+  return true;
+}
+
 // The printer list the print page shows. Hidden printers are ones someone
 // switched off on the Manage page - broken, private office, whatever.
 function listPrinters() {
@@ -120,6 +129,7 @@ function listPrinters() {
         computerName: agent ? agent.name : "unknown",
         agentId: p.agentId,
         online: isOnline(p.agentId),
+        printerType: PRINTER_TYPES.has(p.printerType) ? p.printerType : "auto",
         capabilities: p.capabilities,
       };
     })
@@ -141,6 +151,7 @@ function listPrintersForManaging() {
         agentId: p.agentId,
         online: isOnline(p.agentId),
         hidden: !!p.hidden,
+        printerType: PRINTER_TYPES.has(p.printerType) ? p.printerType : "auto",
         colorMode: COLOR_MODES.has(p.colorMode) ? p.colorMode : "auto",
         // What the computer itself said (true, false, or null: doesn't know).
         reportedColor: p.reportedCapabilities === undefined
@@ -301,6 +312,7 @@ module.exports = {
   findPrinter,
   canPrintTo,
   setColorMode,
+  setPrinterType,
   findAgentByToken,
   printerId,
 };
