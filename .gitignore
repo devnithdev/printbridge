@@ -12,3 +12,9 @@ Updates/
 /PrintBridge.pkg
 /PrintBridge-*.dmg
 .printbridge.bundle
+.pb-update.bundle
+
+# Local project notes and internal guides
+CLAUDE.md
+GEMINI.md
+*.docx
