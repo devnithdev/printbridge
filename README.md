@@ -28,6 +28,17 @@ One main computer runs the printing page, computers with printers share them, an
 
 ---
 
+## Highlights
+
+* **Zero-install mobile printing**: Scan a QR code on the office wall and print directly from Safari, Chrome, or any mobile browser on iPhone, iPad, and Android. No apps or accounts needed.
+* **Google Cloud Print alternative**: Keeps all printing local to your office Wi-Fi network. No cloud subscriptions, external accounts, or documents leaving your building.
+* **Cross-platform**: Seamlessly connects Windows 10/11 and macOS (Apple Silicon & Intel) machines across the local network.
+* **Print from desktop apps**: Includes a native **PrintBridge** virtual printer so you can print directly from Microsoft Office, Acrobat, or any software.
+* **Smart print preview & queue**: Page-by-page visual preview, printer type selection (inkjet, laser, dot matrix, thermal/receipt), live queue tracking, and automatic failover if a printer is busy.
+* **Self-healing**: Resumes automatically after power cuts, automatically rediscovers network addresses, and verifies signed updates in the background.
+
+---
+
 ## Download
 
 Get the ready-to-run installer for Windows or Mac from the **[Download Page](https://devnithdev.github.io/printbridge-updates/)** or **[Latest Release](https://github.com/devnithdev/printbridge/releases/latest)**:
