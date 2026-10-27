@@ -82,7 +82,7 @@ function checkVersionEverywhere(v) {
     const m = re.exec(text);
     if (m && m[1] !== v) wrong.push(file + " says " + m[1]);
   }
-  if (wrong.length) stop("desktop/lib/version.js says " + v + ", but " + wrong.join(", ") + ".\nMake them all the same (see the how-to document), build again, then publish.");
+  if (wrong.length) stop("desktop/lib/version.js says " + v + ", but " + wrong.join(", ") + ".\nRun \"node publish-update.js bump " + v + "\", build again, then publish.");
 }
 
 function publicKeysInBuild() {
@@ -153,7 +153,7 @@ function bump(next) {
     ["server/server.js", new RegExp('const VERSION = "' + esc(v) + '"'), 'const VERSION = "' + next + '"'],
     ["agent/agent.js", new RegExp('const VERSION = "' + esc(v) + '"'), 'const VERSION = "' + next + '"'],
     ["installer/OfficePrinting.nsi", new RegExp('!define VERSION "' + esc(v) + '"'), '!define VERSION "' + next + '"'],
-    ["desktop/tools/relabel-exe/relabel-exe.js", new RegExp('Version: "' + esc(v) + '"', "g"), 'Version: "' + next + '"'],
+    ["desktop/tools/relabel-exe/relabel-exe.js", new RegExp('"' + esc(v) + '"', "g"), '"' + next + '"'],
     ["BUILD-ON-MAC.txt", new RegExp("PrintBridge-" + esc(v) + "\\.dmg", "g"), "PrintBridge-" + next + ".dmg"],
     ["installer-mac/BUILD-ON-MAC.txt", new RegExp("PrintBridge-" + esc(v) + "\\.dmg", "g"), "PrintBridge-" + next + ".dmg"],
   ];
@@ -216,7 +216,7 @@ async function sign() {
       const lv = JSON.parse(live).version;
       const cmp = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
       // (--paused re-signs the version already out, to hold back the computers that haven't installed it yet.)
-      if (cmp(v, lv) <= 0 && !(opt("paused", false) && cmp(v, lv) === 0)) stop("version " + lv + " is already published, and this is " + v + ".\nRaise the version number (see the how-to document), build again, then publish.");
+      if (cmp(v, lv) <= 0 && !(opt("paused", false) && cmp(v, lv) === 0)) stop("version " + lv + " is already published, and this is " + v + ".\nRaise the version number (node publish-update.js bump <version>), build again, then publish.");
       say("Published now: " + lv + ". Publishing: " + v + ".");
     } catch (err) { /* not readable: carry on */ }
   } else {

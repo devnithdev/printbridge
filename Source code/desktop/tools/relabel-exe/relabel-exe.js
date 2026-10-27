@@ -34,8 +34,9 @@ vi.setStringValues(lang, {
   FileVersion: "4.2.3",
   ProductVersion: "4.2.3",
 });
-vi.setFileVersion(4, 1, 1, 0, 1033);
-vi.setProductVersion(4, 1, 1, 0, 1033);
+const vParts = "4.2.3".split(".").map((n) => parseInt(n, 10) || 0);
+vi.setFileVersion(vParts[0] || 0, vParts[1] || 0, vParts[2] || 0, vParts[3] || 0, 1033);
+vi.setProductVersion(vParts[0] || 0, vParts[1] || 0, vParts[2] || 0, vParts[3] || 0, 1033);
 vi.outputToResourceEntries(res.entries);
 
 const icon = ResEdit.Data.IconFile.from(fs.readFileSync(ico));

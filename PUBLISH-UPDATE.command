@@ -11,10 +11,9 @@
 #
 # It signs latest.json with your private key (kept in
 # ~/Documents/PrintBridge update key (keep secret)/ - never in this folder),
-# saves everything in the "Updates" folder next to this file, and puts it on
-# GitHub as a new release if the "gh" tool is installed and signed in
-# (brew install gh, then gh auth login). Without gh it tells you which files
-# to drag onto the GitHub release page instead.
+# saves everything in the "Updates" folder next to this file, and uploads
+# the new release to GitHub (both printbridge-updates and printbridge) using
+# your Mac's git keychain credentials or the "gh" tool.
 #
 # Run it from Terminal:   cd to this folder, then   ./PUBLISH-UPDATE.command
 set -e

@@ -7,7 +7,7 @@
 # (Actions > the run > Artifacts). They are NOT published from here: the
 # signature that lets computers install an update is made on your Mac with
 # the private key, which never comes to GitHub (see PUBLISH-UPDATE.command
-# and the how-to document, section 10).
+# and README.md).
 
 name: Build installers
 

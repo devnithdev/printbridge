@@ -17,7 +17,7 @@ websites (`fake-web.js`) on spare ports, so nothing else needs to be running.
     node t12-remote.js      printing from anywhere: pairing, codes (only fingerprints kept), files locked in the browser and unlocked only at the office, limits, approval, switching off, the office being off
 
 These run on Linux/macOS. The Windows-only parts (the Task Scheduler task,
-the installer) are covered by the test checklist in the 4.1.0 hand-over note.
+the installer) are covered by manual checks on Windows and Mac.
 t4, t5 and t6 need a real network card: on a machine with only
 loopback (some virtual machines) the network question can't be sent and
 t4-t6 fail for that reason alone.

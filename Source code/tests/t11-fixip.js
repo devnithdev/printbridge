@@ -1,7 +1,6 @@
 // "Keep this computer's address the same" (4.1.3+): reading Windows' and
 // macOS's network settings, choosing a sensible free address, refusing a
-// bad one. (Changing the address itself needs a real Windows or Mac - see
-// the checklist in the how-to document.)
+// bad one. (Changing the address itself needs a real Windows or Mac.)
 const assert = require("assert"), path = require("path"), os = require("os"), fs = require("fs");
 process.env.OP_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "pbfix-"));
 const F = require(path.join(__dirname, "..", "desktop", "lib", "fixip"));
