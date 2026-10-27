@@ -249,6 +249,10 @@ async function sign() {
       size: fs.statSync(f).size,
     };
   }
+  const dmg = path.join(SRC, "installer-mac", "dist", "PrintBridge-" + v + ".dmg");
+  if (fs.existsSync(dmg) && fs.statSync(dmg).size > 0) {
+    fs.copyFileSync(dmg, path.join(out, path.basename(dmg)));
+  }
   const notes = opt("notes", "");
   const manifest = {
     app: "printbridge",
@@ -270,12 +274,106 @@ async function sign() {
   return { v, out, repo };
 }
 
-function haveGh() {
-  const r = spawnSync("gh", ["auth", "status"], { encoding: "utf8" });
-  return r.status === 0;
+function gitCredentialToken() {
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+  try {
+    const r = spawnSync("git", ["credential", "fill"], {
+      input: "protocol=https\nhost=github.com\n\n",
+      encoding: "utf8",
+      timeout: 5000,
+    });
+    if (r.status === 0 && r.stdout) {
+      const m = /^password=(.+)$/m.exec(r.stdout);
+      if (m) return m[1].trim();
+    }
+  } catch (err) { /* no credential helper */ }
+  return "";
 }
 
-function upload(info) {
+function sourceRepo() {
+  try {
+    const r = spawnSync("git", ["-C", SRC, "remote", "get-url", "origin"], { encoding: "utf8", timeout: 5000 });
+    if (r.status === 0 && r.stdout) {
+      const m = /github\.com[:/]([^/]+\/[^/.]+?)(?:\.git)?\s*$/.exec(r.stdout);
+      if (m) return m[1];
+    }
+  } catch (err) { /* not a git checkout */ }
+  return "";
+}
+
+function ghRequest(method, urlStr, token, bodyBuffer, contentType) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(urlStr);
+    const headers = {
+      "User-Agent": "PrintBridge-publish",
+      "Accept": "application/vnd.github+json",
+      "Authorization": "Bearer " + token,
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+    if (bodyBuffer) {
+      headers["Content-Type"] = contentType || "application/json; charset=utf-8";
+      headers["Content-Length"] = bodyBuffer.length;
+    }
+    const req = https.request({
+      method,
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      headers,
+      timeout: 300000,
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf8");
+        let json = null;
+        try { json = JSON.parse(text); } catch (e) { /* plain text */ }
+        resolve({ status: res.statusCode, json, text });
+      });
+    });
+    req.on("error", reject);
+    req.on("timeout", () => req.destroy(new Error("request timed out")));
+    if (bodyBuffer) req.write(bodyBuffer);
+    req.end();
+  });
+}
+
+async function publishToRepoWithApi(repo, v, title, notes, assets, token) {
+  say("Publishing release v" + v + " on github.com/" + repo + "...");
+  const tag = "v" + v;
+  let rel = await ghRequest("GET", "https://api.github.com/repos/" + repo + "/releases/tags/" + encodeURIComponent(tag), token);
+  if (rel.status === 404) {
+    const payload = Buffer.from(JSON.stringify({
+      tag_name: tag,
+      name: title,
+      body: notes,
+      draft: false,
+      prerelease: false,
+      make_latest: "true",
+    }));
+    rel = await ghRequest("POST", "https://api.github.com/repos/" + repo + "/releases", token, payload);
+  }
+  if (rel.status < 200 || rel.status >= 300 || !rel.json || !rel.json.upload_url) {
+    throw new Error("GitHub API (" + repo + ") answered " + rel.status + ": " + (rel.json && rel.json.message ? rel.json.message : rel.text.slice(0, 200)));
+  }
+  const uploadBase = rel.json.upload_url.replace(/\{[^}]*\}.*$/, "");
+  const existing = Array.isArray(rel.json.assets) ? rel.json.assets : [];
+
+  for (const file of assets) {
+    const name = path.basename(file);
+    const old = existing.find((a) => a.name === name);
+    if (old && old.id) {
+      await ghRequest("DELETE", "https://api.github.com/repos/" + repo + "/releases/assets/" + old.id, token);
+    }
+    const data = fs.readFileSync(file);
+    say("  Uploading " + name + " (" + Math.max(1, Math.round(data.length / 1024)) + " KB)...");
+    const up = await ghRequest("POST", uploadBase + "?name=" + encodeURIComponent(name), token, data, "application/octet-stream");
+    if (up.status < 200 || up.status >= 300) {
+      throw new Error("Failed to upload " + name + " to " + repo + " (" + up.status + "): " + up.text.slice(0, 200));
+    }
+  }
+}
+
+async function upload(info) {
   const v = info ? info.v : version();
   const out = info ? info.out : releaseDir(v);
   const repo = info ? info.repo : githubRepo();
@@ -286,24 +384,41 @@ function upload(info) {
     say("\nUpload every file in " + out + " so that latest.json and latest.json.sig are at\n  " + CONFIG.MANIFEST_URL + "\n(with the installers next to them).");
     return;
   }
+
+  // Publish to the update feed repository AND the main source repository (if different).
+  const repos = [repo];
+  const srcRepo = sourceRepo();
+  if (srcRepo && !repos.includes(srcRepo) && !opt("repo", "")) repos.push(srcRepo);
+
+  const token = gitCredentialToken();
+  if (token) {
+    for (const r of repos) {
+      await publishToRepoWithApi(r, v, "PrintBridge " + v, manifest.notes || ("PrintBridge " + v), assets, token);
+    }
+    say("\nPublished to " + repos.map((r) => "github.com/" + r).join(" and ") + ".");
+    say("Every computer updates itself within about 6 hours, after any printing that is going on");
+    say("(or straight away with \"Update PrintBridge now\"). Check PrintBridge on each one shows how it went.");
+    return;
+  }
+
   if (!haveGh()) {
-    say("\nTo publish it (the \"gh\" tool isn't installed or signed in, so do it on the website):");
-    say("  1. Open https://github.com/" + repo + "/releases/new  (make the repository first if needed: public, named " + repo.split("/")[1] + ")");
+    say("\nTo publish it (neither git keychain credentials nor the \"gh\" tool were found, so do it on the website):");
+    say("  1. Open https://github.com/" + repo + "/releases/new");
     say("  2. Tag: v" + v + "   Title: PrintBridge " + v);
     say("  3. Drag in ALL the files from: " + out);
     say("  4. Tick \"Set as the latest release\" and press Publish release.");
-    say("Every computer then updates itself within about 6 hours (or straight away with \"Update PrintBridge now\").");
-    say("Or install the gh tool once (brew install gh, then gh auth login) and run this again to do it for you.");
     return;
   }
-  const exists = spawnSync("gh", ["repo", "view", repo], { encoding: "utf8" }).status === 0;
-  if (!exists) {
-    say("Making the public repository " + repo + " for the update files...");
-    execFileSync("gh", ["repo", "create", repo, "--public", "--description", "PrintBridge installers and automatic-update files"], { stdio: "inherit" });
+  for (const r of repos) {
+    const exists = spawnSync("gh", ["repo", "view", r], { encoding: "utf8" }).status === 0;
+    if (!exists) {
+      say("Making the public repository " + r + " for the update files...");
+      execFileSync("gh", ["repo", "create", r, "--public", "--description", "PrintBridge installers and automatic-update files"], { stdio: "inherit" });
+    }
+    say("Publishing release v" + v + " on github.com/" + r + "...");
+    execFileSync("gh", ["release", "create", "v" + v, ...assets, "--repo", r, "--title", "PrintBridge " + v,
+      "--notes", manifest.notes || ("PrintBridge " + v), "--latest"], { stdio: "inherit" });
   }
-  say("Publishing release v" + v + " on github.com/" + repo + "...");
-  execFileSync("gh", ["release", "create", "v" + v, ...assets, "--repo", repo, "--title", "PrintBridge " + v,
-    "--notes", manifest.notes || ("PrintBridge " + v), "--latest"], { stdio: "inherit" });
   say("\nPublished. Every computer updates itself within about 6 hours, after any printing that is going on");
   say("(or straight away with \"Update PrintBridge now\"). Check PrintBridge on each one shows how it went.");
 }
@@ -313,12 +428,12 @@ function upload(info) {
     if (command === "keygen") return keygen();
     if (command === "bump") return bump(args[0]);
     if (command === "sign") return void (await sign());
-    if (command === "upload") return upload();
+    if (command === "upload") return await upload();
     if (command === "all") {
       if (!fs.existsSync(path.resolve(opt("key", DEFAULT_KEY)))) {
         stop("there is no signing key yet. Make it with:  node publish-update.js keygen\nthen build (so the installers know the key), then publish.");
       }
-      return upload(await sign());
+      return await upload(await sign());
     }
     stop("unknown command \"" + command + "\" (keygen, sign, upload or all).");
   } catch (err) {
