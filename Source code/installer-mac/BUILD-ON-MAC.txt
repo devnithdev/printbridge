@@ -1,7 +1,7 @@
 PRINTBRIDGE FOR MAC - HOW TO BUILD THE INSTALLER
 ================================================
 
-This turns the source code into one file, PrintBridge-4.2.3.dmg, that you
+This turns the source code into one file, PrintBridge-4.2.4.dmg, that you
 can give to other Macs. You do this once, on any Mac. Nobody else needs to.
 
 WHAT YOU NEED (one-time, free)
@@ -27,14 +27,14 @@ your Desktop and called "PrintBridge Mac":
 When it finishes it prints "Done" and the results are in the "dist" folder
 next to it:
        PrintBridge.pkg          the installer
-       PrintBridge-4.2.3.dmg    the same installer inside a disk image
+       PrintBridge-4.2.4.dmg    the same installer inside a disk image
 
 That is all you need to do to test it on your own Mac.
 
 
 STEP 2 - TRY IT ON YOUR MAC
 ---------------------------
-1. Open PrintBridge-4.2.3.dmg, then double-click PrintBridge.pkg.
+1. Open PrintBridge-4.2.4.dmg, then double-click PrintBridge.pkg.
    (If it isn't signed, macOS says it can't be opened. Click Done, then open
    System Settings > Privacy & Security, scroll down and click "Open Anyway"
    next to PrintBridge.pkg, and confirm with your password. On macOS 15 and

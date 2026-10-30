@@ -407,19 +407,53 @@ function discardPending() {
   pendingFiles = [];
 }
 
+// A dropped Wi-Fi connection can leave a request waiting forever with no error,
+// so give up on one that goes quiet and send the file again. PDFs need no work
+// on the website; other files can take up to 2 minutes to convert (convert.js).
+const UPLOAD_TRIES = 3;
+const QUIET_MS_PDF = 20000;
+const QUIET_MS_OTHER = 150000;
+
 function uploadEntry(entry) {
   const form = new FormData();
   form.append("file", entry.file);
   const xhr = new XMLHttpRequest();
   entry.xhr = xhr;
+  entry.tries = (entry.tries || 0) + 1;
+  const quietMs = /\.pdf$/i.test(entry.name) ? QUIET_MS_PDF : QUIET_MS_OTHER;
+  let quietTimer;
+  const failed = (message) => {
+    entry.xhr = null;
+    if (entry.cancelled) return;
+    if (entry.tries < UPLOAD_TRIES) {
+      // An earlier try that did arrive is never printed, and is deleted after 3 hours (held.js).
+      entry.status = "uploading";
+      entry.progress = 0;
+      renderPrintModal();
+      uploadEntry(entry);
+      return;
+    }
+    entry.status = "error";
+    entry.error = message;
+    renderPrintModal();
+  };
+  const watchForQuiet = () => {
+    clearTimeout(quietTimer);
+    quietTimer = setTimeout(() => {
+      xhr.abort();
+      failed("The connection to the printing website stopped. Check the Wi-Fi and try again.");
+    }, quietMs);
+  };
   xhr.open("POST", "/api/uploads");
   xhr.upload.onprogress = (event) => {
+    watchForQuiet();
     if (!event.lengthComputable) return;
     entry.progress = Math.round((event.loaded / event.total) * 100);
     if (entry.progress >= 100) entry.status = "preparing";
     renderFileList();
     if (pendingFiles[activeIndex] === entry) renderPreview();
   };
+  xhr.onloadend = () => clearTimeout(quietTimer);
   xhr.onload = () => {
     entry.xhr = null;
     let data = {};
@@ -440,13 +474,8 @@ function uploadEntry(entry) {
     }
     renderPrintModal();
   };
-  xhr.onerror = () => {
-    entry.xhr = null;
-    if (entry.cancelled) return;
-    entry.status = "error";
-    entry.error = "It didn't reach the printing website. Check the Wi-Fi and try again.";
-    renderPrintModal();
-  };
+  xhr.onerror = () => failed("It didn't reach the printing website. Check the Wi-Fi and try again.");
+  watchForQuiet();
   xhr.send(form);
 }
 

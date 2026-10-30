@@ -83,6 +83,7 @@ node t5-supervisor.js
 node t10-updates.js
 node t11-fixip.js
 node t12-remote.js
+node t13-upload-retry.js
 ```
 
 ---
