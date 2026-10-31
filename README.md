@@ -103,6 +103,12 @@ node t14-preview-files.js
 
 ---
 
+## Contributing
+
+Contributions are welcome, and no printer is needed for most of them. Start with a [good first issue](https://github.com/devnithdev/printbridge/labels/good%20first%20issue) or [help wanted](https://github.com/devnithdev/printbridge/labels/help%20wanted), and see [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up, test and send a change.
+
+---
+
 ## License
 
 Released under the [MIT License](LICENSE). Third-party components (`SumatraPDF`, `PDF.js`, `QRCode.js`) are included under their respective licenses in `Source code/installer/` and `Source code/server/public/vendor/`.

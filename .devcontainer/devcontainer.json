@@ -1,0 +1,7 @@
+{
+  "name": "PrintBridge",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "cd 'Source code/server' && npm ci && cd ../agent && npm ci",
+  "forwardPorts": [3000],
+  "portsAttributes": { "3000": { "label": "Printing page" } }
+}
