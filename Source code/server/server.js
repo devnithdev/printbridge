@@ -16,6 +16,7 @@ const http = require("http");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
+const zlib = require("zlib");
 const multer = require("multer");
 const { WebSocketServer } = require("ws");
 
@@ -29,7 +30,7 @@ const help = require("./lib/help");
 const held = require("./lib/held");
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const VERSION = "4.2.4";
+const VERSION = "4.2.5";
 const MAX_UPLOAD_MB = parseInt(process.env.MAX_UPLOAD_MB, 10) || 50;
 const UPLOAD_DIR = jobs.UPLOAD_DIR;
 
@@ -57,6 +58,19 @@ const upload = multer({
   // "Café.docx" into "CafÃ©.docx" on the preview and in the queue.
   defParamCharset: "utf8",
   limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 },
+});
+
+// pdf.js is most of what a phone downloads to show a preview, and shrinks to a
+// quarter. Only these two big files, so the website needs no compression package.
+const gzipped = new Map();
+app.get("/vendor/pdfjs/:file(pdf.min.js|pdf.worker.min.js)", (req, res, next) => {
+  if (!req.acceptsEncodings("gzip")) return next();
+  const file = req.params.file;
+  if (!gzipped.has(file)) {
+    gzipped.set(file, zlib.gzipSync(fs.readFileSync(path.join(__dirname, "public", "vendor", "pdfjs", file))));
+  }
+  res.set({ "Content-Type": "application/javascript; charset=UTF-8", "Content-Encoding": "gzip", "Vary": "Accept-Encoding", "Cache-Control": "public, max-age=0" });
+  res.send(gzipped.get(file));
 });
 
 app.use(express.static(path.join(__dirname, "public")));

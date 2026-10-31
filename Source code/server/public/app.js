@@ -332,6 +332,7 @@ function openPrintModalWith(files) {
 
   discardPending();
   pendingFiles = fitting.map((file) => newEntry({ name: file.name, size: file.size, file }));
+  previewWorker(); // start now, so it is ready by the time the file has been sent
   showPrintModal(tooBig.length ? tooBig.length + " file(s) were too big and have been left out." : "");
   for (const entry of pendingFiles) uploadEntry(entry);
 }
@@ -368,7 +369,7 @@ function newEntry(fields) {
     pageCount: 0,
     pageSizes: [],         // [width, height] in points, as the page is shown
     chosen: new Set(),     // empty = every page
-    canvases: new Map(),   // page number -> rendered canvas
+    pictures: new Map(),   // "page@width" -> address of the rendered picture
     previewError: "",
   }, fields);
 }
@@ -400,6 +401,7 @@ function discardPending() {
     entry.cancelled = true;
     if (entry.xhr) { try { entry.xhr.abort(); } catch (err) { /* already done */ } }
     if (entry.pdf) { try { entry.pdf.destroy(); } catch (err) { /* already gone */ } }
+    for (const picture of entry.pictures.values()) URL.revokeObjectURL(picture);
     if (entry.uploadId && !entry.printed) {
       fetch("/api/uploads/" + encodeURIComponent(entry.uploadId), { method: "DELETE" }).catch(() => {});
     }
@@ -479,6 +481,13 @@ function uploadEntry(entry) {
   xhr.send(form);
 }
 
+// Starting pdf.js takes old phones seconds, so one worker is kept for every file.
+let sharedPreviewWorker = null;
+function previewWorker() {
+  if (!sharedPreviewWorker && window.pdfjsLib) sharedPreviewWorker = new window.pdfjsLib.PDFWorker();
+  return sharedPreviewWorker;
+}
+
 async function loadPreview(entry) {
   if (!window.pdfjsLib) {
     entry.previewError = "A preview can't be shown on this device, but it will still print.";
@@ -488,21 +497,41 @@ async function loadPreview(entry) {
   try {
     const pdf = await window.pdfjsLib.getDocument({
       url: entry.fileUrl,
+      worker: previewWorker(),
       isEvalSupported: false, // never run code found inside a PDF
       standardFontDataUrl: "/vendor/pdfjs/standard_fonts/",
     }).promise;
     if (entry.cancelled) { pdf.destroy(); return; }
     entry.pdf = pdf;
     entry.pageCount = pdf.numPages;
-    for (let n = 1; n <= Math.min(pdf.numPages, MAX_THUMBS); n++) {
-      const page = await pdf.getPage(n);
-      const view = page.getViewport({ scale: 1 });
-      entry.pageSizes[n] = [view.width, view.height];
-    }
+    entry.pageSizes[1] = await pageSize(pdf, 1);
   } catch (err) {
     entry.previewError = "The preview couldn't be shown, but the file can still be printed.";
   }
   renderPrintModal();
+  if (entry.pdf) loadOtherPageSizes(entry);
+}
+
+async function pageSize(pdf, n) {
+  const view = (await pdf.getPage(n)).getViewport({ scale: 1 });
+  return [view.width, view.height];
+}
+
+// The preview shows straight away assuming every page is the size of page 1;
+// only a file with mixed sizes needs drawing again once the real sizes are in.
+async function loadOtherPageSizes(entry) {
+  const [w, h] = entry.pageSizes[1];
+  let mixed = false;
+  try {
+    for (let n = 2; n <= Math.min(entry.pageCount, MAX_THUMBS); n++) {
+      const size = await pageSize(entry.pdf, n);
+      entry.pageSizes[n] = size;
+      if (size[0] !== w || size[1] !== h) mixed = true;
+    }
+  } catch (err) {
+    return; // closed, or a damaged page: its thumbnail keeps the size of page 1
+  }
+  if (mixed && activeEntry() === entry) renderPreview();
 }
 
 function renderPrintModal() {
@@ -658,7 +687,7 @@ function setPaperShape(el, ratio) {
 }
 
 function makeThumb(entry, n) {
-  const size = entry.pageSizes[n] || [595, 842];
+  const size = entry.pageSizes[n] || entry.pageSizes[1] || [595, 842];
   const place = placeOnPaper(size[0], size[1]);
   const chosen = entry.chosen.has(n);
   const dimmed = entry.chosen.size && !chosen;
@@ -680,7 +709,7 @@ function makeThumb(entry, n) {
   holder.style.width = place.width * 100 + "%";
   holder.style.height = place.height * 100 + "%";
   paper.appendChild(holder);
-  drawPageInto(entry, n, holder, 260);
+  drawWhenSeen(entry, n, holder);
   card.appendChild(paper);
 
   const tick = document.createElement("button");
@@ -700,24 +729,47 @@ function makeThumb(entry, n) {
   return card;
 }
 
+// Pages are drawn when they scroll into view, one at a time: a file with many
+// pages would otherwise freeze an old phone drawing pages nobody has looked at.
+let thumbQueue = Promise.resolve();
+function drawWhenSeen(entry, n, holder) {
+  const draw = () => {
+    thumbQueue = thumbQueue.then(() => {
+      if (!holder.isConnected) return; // the list was rebuilt while this waited
+      return drawPageInto(entry, n, holder, Math.ceil((holder.clientWidth || 260) / 20) * 20);
+    });
+  };
+  if (!window.IntersectionObserver) { setTimeout(draw); return; }
+  new IntersectionObserver((seen, watcher) => {
+    if (!seen.some((item) => item.isIntersecting)) return;
+    watcher.disconnect();
+    draw();
+  }).observe(holder);
+}
+
 // Renders a page once per size and reuses the picture after that.
 async function drawPageInto(entry, n, holder, cssWidth) {
   // Let the caller put the holder on the page first (it is still being
   // built when this is called).
   await null;
   const key = n + "@" + cssWidth;
-  let canvas = entry.canvases.get(key);
-  if (!canvas) {
+  let picture = entry.pictures.get(key);
+  if (!picture) {
     try {
       const page = await entry.pdf.getPage(n);
       const base = page.getViewport({ scale: 1 });
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const viewport = page.getViewport({ scale: (cssWidth * ratio) / base.width });
-      canvas = document.createElement("canvas");
+      const canvas = document.createElement("canvas");
       canvas.width = Math.round(viewport.width);
       canvas.height = Math.round(viewport.height);
       await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-      entry.canvases.set(key, canvas);
+      // A blob, not toDataURL: it is made without freezing the page, and takes far less memory.
+      const blob = await new Promise((done) => canvas.toBlob(done));
+      canvas.width = canvas.height = 0;
+      page.cleanup();
+      picture = URL.createObjectURL(blob);
+      entry.pictures.set(key, picture);
     } catch (err) {
       return;
     }
@@ -725,7 +777,7 @@ async function drawPageInto(entry, n, holder, cssWidth) {
   if (!holder.isConnected) return;
   const img = document.createElement("img");
   img.alt = "Page " + n;
-  img.src = canvas.toDataURL("image/png");
+  img.src = picture;
   holder.innerHTML = "";
   holder.appendChild(img);
 }
@@ -863,7 +915,7 @@ function renderPageView() {
   if (!entry || !entry.pdf || !viewPage) return;
   const shown = Math.min(entry.pageCount, MAX_THUMBS);
   $("pvTitle").textContent = "Page " + viewPage + " of " + entry.pageCount;
-  const size = entry.pageSizes[viewPage] || [595, 842];
+  const size = entry.pageSizes[viewPage] || entry.pageSizes[1] || [595, 842];
   const place = placeOnPaper(size[0], size[1]);
   const stage = $("pvStage");
   stage.innerHTML = "";

@@ -16,6 +16,7 @@ websites (`fake-web.js`) on spare ports, so nothing else needs to be running.
     node t11-fixip.js       "keep this computer's address the same": reading Windows/macOS network settings, choosing a free address, refusing bad ones
     node t12-remote.js      printing from anywhere: pairing, codes (only fingerprints kept), files locked in the browser and unlocked only at the office, limits, approval, switching off, the office being off
     node t13-upload-retry.js  "Print this?" screen: a stuck upload is sent again, then shows an error
+    node t14-preview-files.js  the preview library is sent gzipped to browsers that can take it
 
 These run on Linux/macOS. The Windows-only parts (the Task Scheduler task,
 the installer) are covered by manual checks on Windows and Mac.
