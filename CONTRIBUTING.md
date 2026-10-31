@@ -75,7 +75,7 @@ Merging a pull request doesn't send anything to anyone's computer. Installed com
 
 Never add keys, passwords, tokens or `.pem` files to a pull request.
 
-If you find a security problem, please don't put the details in a public issue. Open an issue that only asks for a private way to report it.
+If you find a security problem, please don't put the details in a public issue. [Report it privately](https://github.com/devnithdev/printbridge/security/advisories/new) instead.
 
 ## Licence
 
