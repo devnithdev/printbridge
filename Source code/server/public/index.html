@@ -78,9 +78,9 @@
 
   <!-- First visit: who are you? (a label, not an account) -->
   <div id="welcomeModal" class="modal-overlay" hidden>
-    <div class="modal" style="max-width:400px">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle" style="max-width:400px">
       <div class="welcome-body">
-        <h2>What should we call you?</h2>
+        <h2 id="welcomeModalTitle">What should we call you?</h2>
         <p>So people can tell whose printout is whose at the tray. No account, no password &mdash; just a name on the job.</p>
         <input id="welcomeName" type="text" aria-label="Your name" placeholder="e.g. Dev, or Front desk iPad" maxlength="40" autocomplete="off">
         <div style="margin-top:16px">
@@ -92,7 +92,7 @@
 
   <!-- Drop a file (or print from another program): check it, then print -->
   <div id="printModal" class="modal-overlay" hidden>
-    <div class="modal print-modal">
+    <div class="modal print-modal" role="dialog" aria-modal="true" aria-labelledby="printModalTitle">
       <div class="modal-head">
         <h2 id="printModalTitle">Print this?</h2>
         <button class="icon-btn" id="closePrintModal" type="button" aria-label="Close">&times;</button>
@@ -155,7 +155,7 @@
 
   <!-- One page, large -->
   <div id="pageView" class="modal-overlay page-view" hidden>
-    <div class="modal pv-box">
+    <div class="modal pv-box" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
       <div class="modal-head">
         <h2 id="pvTitle">Page 1</h2>
         <button class="icon-btn" id="pvClose" type="button" aria-label="Close">&times;</button>
@@ -171,9 +171,9 @@
 
   <!-- Change your name -->
   <div id="nameModal" class="modal-overlay" hidden>
-    <div class="modal" style="max-width:400px">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle" style="max-width:400px">
       <div class="modal-head">
-        <h2>Your name</h2>
+        <h2 id="nameModalTitle">Your name</h2>
         <button class="icon-btn" id="closeName" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
@@ -190,9 +190,9 @@
 
   <!-- Ask for help -->
   <div id="helpModal" class="modal-overlay" hidden>
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
       <div class="modal-head">
-        <h2>Ask for help</h2>
+        <h2 id="helpModalTitle">Ask for help</h2>
         <button class="icon-btn" id="closeHelp" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
