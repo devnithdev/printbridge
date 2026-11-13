@@ -44,6 +44,7 @@ jobs:
           node t16-other-printer.js
           node t17-update-now.js
           node t18-bad-messages.js
+          node t18-dialogs.js
 
   windows:
     name: Windows installer

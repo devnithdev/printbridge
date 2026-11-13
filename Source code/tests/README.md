@@ -22,6 +22,7 @@ websites (`fake-web.js`) on spare ports, so nothing else needs to be running.
     node t16-other-printer.js  a job only moves to the same kind (inkjet/laser to each other if ticked), never because a computer dropped off
     node t17-update-now.js  "Update PrintBridge now" shows a message window saying what it found, never a terminal
     node t18-bad-messages.js  malformed network messages, printer lists and cookies from anyone on the network don't crash the main computer
+    node t18-dialogs.js  Every pop-up on the printing pages tells screen readers that it is a pop-up, and what it is called, using role="dialog" and aria-labelledby attributes.
 
 These run on Linux/macOS. The Windows-only parts (the Task Scheduler task,
 the installer) are covered by manual checks on Windows and Mac.
