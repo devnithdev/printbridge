@@ -41,7 +41,7 @@ const SETTINGS_DIR = process.env.PRINT_AGENT_DIR || BASE_DIR;
 const CONFIG_FILE = path.join(SETTINGS_DIR, "config.json");
 const STATUS_FILE = path.join(SETTINGS_DIR, "status.json");
 const DOWNLOAD_DIR = path.join(SETTINGS_DIR, "downloads");
-const VERSION = "4.2.19";
+const VERSION = "4.2.20";
 
 fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 // Files left by a run that was stopped mid-job (power cut, update): never left lying around.
