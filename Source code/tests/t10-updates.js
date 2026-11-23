@@ -243,7 +243,10 @@ const log = (c) => { try { return fs.readFileSync(path.join(c.dir, "logs", "upda
   let wrongKey = false;
   try { pub(["sign", "--key", otherFile]); } catch (e) { wrongKey = /isn't the one in desktop\/lib\/update-key.js/.test(String(e.stderr)); }
   ok(wrongKey, "sign refuses a key the build doesn't trust (computers would ignore it)");
-  pub(["sign", "--key", keyFile, "--notes", "Test release", "--relative"]);
+  let offlineRefused = false;
+  try { pub(["sign", "--key", keyFile, "--notes", "Test release", "--relative"]); } catch (e) { offlineRefused = /--skip-live-check/.test(String(e.stderr)); }
+  ok(offlineRefused, "sign stops when it can't reach the live feed unless --skip-live-check is given");
+  pub(["sign", "--key", keyFile, "--notes", "Test release", "--relative", "--skip-live-check"]);
   const rel = path.join(src, "..", "Updates", "4.1.4");
   ok(["latest.json", "latest.json.sig", "PrintBridgeSetup.exe"].every((f) => fs.existsSync(path.join(rel, f))), "sign: latest.json, its signature and the installer are ready in Updates/4.1.4");
   for (const f of fs.readdirSync(www)) fs.rmSync(path.join(www, f), { force: true });
