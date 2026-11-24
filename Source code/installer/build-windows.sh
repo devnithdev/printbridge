@@ -59,7 +59,7 @@ PKG_CACHE_PATH="$PRIVATE" "$ROOT/desktop/build.sh"
 
 echo "4/4 Building PrintBridgeSetup.exe..."
 mkdir -p "$HERE/dist"
-(cd "$HERE" && makensis -V2 OfficePrinting.nsi)
+(cd "$HERE" && LC_CTYPE=C.UTF-8 makensis -V2 OfficePrinting.nsi)
 
 echo
 echo "Done: $HERE/dist/PrintBridgeSetup.exe"
