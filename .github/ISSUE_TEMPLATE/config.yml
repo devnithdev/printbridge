@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions about setting it up
+    url: https://devnithdev.github.io/printbridge-updates/faq.html
+    about: The FAQ answers most setup, network and printer questions.
+  - name: A security problem
+    url: https://github.com/devnithdev/printbridge/security/advisories/new
+    about: Please report it privately, not in a public issue.
