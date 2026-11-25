@@ -92,6 +92,34 @@ const managed = async () => JSON.parse((await request("GET", "/api/manage/printe
     await request("POST", brokenUrl, { broken: false });
     ok((await managed()).broken === false, "marked working again");
 
+    // Renaming: people are shown the new name; its computer is still sent the real one.
+    const renameUrl = "/api/manage/printers/" + encodeURIComponent(p.id) + "/rename";
+    ok((await request("POST", renameUrl, { name: 5 })).status === 400, "rename: only text is taken");
+    ok((await request("POST", renameUrl, { name: "  Front   desk\nlaser  " })).status === 200, "a printer can be renamed (spaces and line breaks tidied)");
+    let renamed = await managed();
+    ok(renamed.label === "Front desk laser" && renamed.name === "Office" && renamed.displayName === "Front desk laser", "...people see the new name, the computer's own name is kept");
+    const onPage2 = JSON.parse((await request("GET", "/api/printers")).body).find((x) => x.id === p.id);
+    ok(onPage2.label === "Front desk laser" && onPage2.name === "Office", "...the print page gets both");
+    ws.send(JSON.stringify({ type: "printers", printers: [{ name: "Office", capabilities: { color: false, duplex: false } }, { name: "Spare", capabilities: { color: false, duplex: false } }] }));
+    await until(async () => JSON.parse((await request("GET", "/api/manage/printers")).body).length === 2);
+    const spare = JSON.parse((await request("GET", "/api/manage/printers")).body).find((x) => x.name === "Spare");
+    const dup = await request("POST", "/api/manage/printers/" + encodeURIComponent(spare.id) + "/rename", { name: "FRONT desk LASER" });
+    ok(dup.status === 400 && /already called/.test(dup.body), "another printer can't be given the same name (even in other letters)");
+    ok((await request("POST", "/api/manage/printers/" + encodeURIComponent(spare.id) + "/rename", { name: "Office" })).status === 400, "...nor another printer's own name");
+    ws.send(JSON.stringify({ type: "printers", printers: [{ name: "Office", capabilities: { color: false, duplex: false } }] }));
+    await until(async () => JSON.parse((await request("GET", "/api/manage/printers")).body).length === 1);
+    await request("POST", renameUrl, { name: "x".repeat(80) });
+    ok((await managed()).label.length === 60, "a name is cut at 60 characters");
+    await request("POST", renameUrl, { name: "" });
+    renamed = await managed();
+    ok(renamed.label === "Office" && !renamed.displayName, "empty goes back to the original name");
+    await request("POST", renameUrl, { name: "Front desk laser" });
+    ws.send(JSON.stringify({ type: "printers", printers: [] }));
+    await until(async () => !(await managed()));
+    ws.send(JSON.stringify({ type: "printers", printers: [{ name: "Office", capabilities: { color: false, duplex: false } }] }));
+    await until(managed);
+    ok((await managed()).label === "Front desk laser", "the new name is still there after the printer drops out of its computer's list and comes back");
+
     // A printer's computer says it is jammed: everyone sees it, then it clears.
     const got = [];
     ws.on("message", (m) => got.push(JSON.parse(m)));
@@ -123,6 +151,8 @@ const managed = async () => JSON.parse((await request("GET", "/api/manage/printe
     const sent = await fetch("http://127.0.0.1:" + PORT + "/api/print", { method: "POST", body: form });
     ok(sent.ok, "a job waits on the printer");
     await waitFor(() => sseQueues.some((q) => q.length === 1));
+    ok(got.some((m) => m.type === "job" && m.printer === "Office"), "the printer's computer is sent its own name, not the new one");
+    ok(sseQueues.some((q) => q.some((j) => j.printerName === "Front desk laser")), "the queue shows the new name");
 
     const beforeJam = sseQueues.length;
     ws.send(JSON.stringify({ type: "health", printers: [{ name: "Office", problem: "Paper jam", waiting: 2 }, { name: "Not mine", problem: "x" }, null] }));

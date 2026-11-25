@@ -55,10 +55,10 @@ function disconnectAgent(agentId) {
 
 // What was set by hand on Printers & setup, kept for a printer that drops out
 // of its computer's list, so it isn't lost when the printer comes back.
-const KEPT_SETTINGS = ["hidden", "broken", "colorMode", "duplexMode", "printerType"];
+const KEPT_SETTINGS = ["hidden", "broken", "colorMode", "duplexMode", "printerType", "displayName"];
 function rememberSettings(printer) {
   const kept = {};
-  for (const key of KEPT_SETTINGS) if (printer[key] !== undefined && printer[key] !== false && printer[key] !== "auto") kept[key] = printer[key];
+  for (const key of KEPT_SETTINGS) if (printer[key] !== undefined && printer[key] !== false && printer[key] !== "auto" && printer[key] !== "") kept[key] = printer[key];
   if (!Object.keys(kept).length) return;
   db.printerSettings = db.printerSettings || {};
   db.printerSettings[printer.id] = kept;
@@ -173,6 +173,25 @@ function kindOf(record) {
   return found ? found[0] : "unknown";
 }
 
+// A name people see for a printer, instead of the one its computer gives it
+// ("Front desk laser" instead of "HP LaserJet Professional P1102"). The real
+// name stays: it is how the printer's computer finds the printer, and what the
+// kind and brand are guessed from. Empty text goes back to the real name.
+// Answers false when another printer already shows that name.
+const labelOf = (p) => p.displayName || p.name;
+function setDisplayName(record, text) {
+  const clean = String(text == null ? "" : text).replace(/[\r\n\t]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  // Its own name typed back in just clears the rename.
+  const target = clean && clean.toLowerCase() !== String(record.name).toLowerCase() ? clean : "";
+  // Not a name another printer shows, nor another printer's own name: Printers & setup and the drop page would mix them up.
+  if (target && db.printers.some((p) => p !== record && (labelOf(p).toLowerCase() === target.toLowerCase() || String(p.name).toLowerCase() === target.toLowerCase()))) return false;
+  if (target) record.displayName = target;
+  else delete record.displayName;
+  save();
+  events.emit("printers-changed");
+  return true;
+}
+
 function setPrinterType(record, type) {
   if (!PRINTER_TYPES.has(type)) return false;
   record.printerType = type;
@@ -220,7 +239,8 @@ function listPrinters() {
       const agent = db.agents.find((a) => a.id === p.agentId);
       return {
         id: p.id,
-        name: p.name,
+        name: p.name,           // what its computer calls it (used for printing and guessing its kind)
+        label: labelOf(p),      // what people are shown
         computerName: agent ? agent.name : "unknown",
         agentId: p.agentId,
         online: isOnline(p.agentId),
@@ -233,7 +253,7 @@ function listPrinters() {
     })
     .sort((a, b) => {
       if (a.online !== b.online) return a.online ? -1 : 1;
-      return a.name.localeCompare(b.name);
+      return a.label.localeCompare(b.label);
     });
 }
 
@@ -245,6 +265,8 @@ function listPrintersForManaging() {
       return {
         id: p.id,
         name: p.name,
+        label: labelOf(p),
+        displayName: p.displayName || "",
         computerName: agent ? agent.name : "unknown",
         agentId: p.agentId,
         online: isOnline(p.agentId),
@@ -429,6 +451,8 @@ module.exports = {
   setColorMode,
   setDuplexMode,
   setPrinterType,
+  setDisplayName,
+  labelOf,
   kindOf,
   findAgentByToken,
   printerId,

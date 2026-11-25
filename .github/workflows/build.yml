@@ -56,6 +56,7 @@ jobs:
           node t20-printer-settings.js
           node t21-bucket-expiry.js
           node t22-both-sides.js
+          node t23-rename-remote.js
 
   windows:
     name: Windows installer

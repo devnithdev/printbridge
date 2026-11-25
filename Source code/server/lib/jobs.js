@@ -164,7 +164,7 @@ function createJob({ deviceId, label, file, printer, options, allowFailover, all
     fileName: file.originalName,
     storedFile: path.basename(file.storedPath),
     printerId: printer.id,
-    printerName: printer.name,
+    printerName: agents.labelOf(printer),
     agentId: printer.agentId,
     options,
     allowFailover: !!allowFailover,
@@ -206,13 +206,13 @@ function dispatch(job) {
   }
 
   if (!agents.isOnline(printer.agentId)) {
-    setStatus(job, "queued", "Waiting for " + printer.name + " to come online.");
+    setStatus(job, "queued", "Waiting for " + agents.labelOf(printer) + " to come online.");
     return false;
   }
 
   const token = issueFileToken(job);
   job.agentId = printer.agentId;
-  job.printerName = printer.name;
+  job.printerName = agents.labelOf(printer); // what people read; the computer is sent the real name below
   if (!job.triedPrinterIds.includes(printer.id)) job.triedPrinterIds.push(printer.id);
 
   const sent = agents.sendToAgent(printer.agentId, {
@@ -225,14 +225,14 @@ function dispatch(job) {
   });
 
   if (!sent) {
-    setStatus(job, "queued", "Waiting for " + printer.name + " to come online.");
+    setStatus(job, "queued", "Waiting for " + agents.labelOf(printer) + " to come online.");
     return false;
   }
 
   // Remembered so a later Cancel can say honestly whether it may already
   // be at a printer.
   job.sentAt = Date.now();
-  setStatus(job, "sent", "Sent to " + printer.name + ".");
+  setStatus(job, "sent", "Sent to " + agents.labelOf(printer) + ".");
   return true;
 }
 
@@ -312,8 +312,8 @@ function handleAgentStatus({ agentId, jobId, status, message, noFailover }) {
       const fallback = findFallbackPrinter(job);
       if (fallback) {
         job.printerId = fallback.id;
-        job.printerName = fallback.name;
-        setStatus(job, "retrying", "Printer failed, trying " + fallback.name + " instead.");
+        job.printerName = agents.labelOf(fallback);
+        setStatus(job, "retrying", "Printer failed, trying " + agents.labelOf(fallback) + " instead.");
         dispatch(job);
         return;
       }
@@ -512,7 +512,7 @@ agents.events.on("health-changed", broadcastQueue);
 function clearPrinter(printer) {
   let n = 0;
   for (const job of db.jobs.filter((j) => j.printerId === printer.id && !FINISHED.has(j.status))) {
-    finish(job, "cancelled", "Cleared from " + printer.name + "'s queue at the office. Send it again if you still need it.");
+    finish(job, "cancelled", "Cleared from " + agents.labelOf(printer) + "'s queue at the office. Send it again if you still need it.");
     n++;
   }
   agents.sendToAgent(printer.agentId, { type: "clear-queue", printer: printer.name });

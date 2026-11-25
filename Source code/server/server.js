@@ -414,7 +414,7 @@ app.post("/api/print", upload.single("file"), handleAsync(async (req, res) => {
   if (target.id !== printer.id) {
     job.attempts.push({
       printerId: printer.id,
-      printerName: printer.name,
+      printerName: agents.labelOf(printer),
       at: Date.now(),
       result: "skipped: offline",
     });
@@ -568,6 +568,26 @@ app.post("/api/manage/printers/:id/hidden", (req, res) => {
   res.json({ ok: true });
 });
 
+// A name for people to see, instead of what the printer's computer calls it.
+// Empty puts the original name back.
+app.post("/api/manage/printers/:id/rename", (req, res) => {
+  const printer = agents.findPrinter(req.params.id);
+  if (!printer) {
+    res.status(404).json({ error: "No such printer." });
+    return;
+  }
+  if (!req.body || typeof req.body.name !== "string") {
+    res.status(400).json({ error: "Type the name to show." });
+    return;
+  }
+  if (!agents.setDisplayName(printer, req.body.name)) {
+    res.status(400).json({ error: "Another printer is already called that." });
+    return;
+  }
+  jobs.broadcastQueue();
+  res.json({ ok: true, label: agents.labelOf(printer) });
+});
+
 // Out of order: the printer stays on the print page, marked as such, and
 // nothing is sent to it. Jobs still waiting for it end here, saying why;
 // ones already at the printer are left alone.
@@ -585,8 +605,8 @@ app.post("/api/manage/printers/:id/broken", (req, res) => {
   if (printer.broken) {
     for (const job of db.jobs.filter((j) => j.printerId === printer.id && j.status === "queued")) {
       jobs.finish(job, "failed", job.sentAt
-        ? printer.name + " was marked out of order at the office. It had already been sent to it, so it may still come out."
-        : "Not printed: " + printer.name + " is marked out of order at the office. Print it on another printer.");
+        ? agents.labelOf(printer) + " was marked out of order at the office. It had already been sent to it, so it may still come out."
+        : "Not printed: " + agents.labelOf(printer) + " is marked out of order at the office. Print it on another printer.");
     }
   }
   save();

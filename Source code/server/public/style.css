@@ -860,3 +860,11 @@ header.one-line .theme-btn::after { content: ""; position: absolute; inset: -3px
   .foot-row .big-print { flex: 1 1 100%; order: 1; }
   .foot-row .bucket-add { flex: 1 1 100%; order: 2; padding: 12px; }
 }
+
+/* renaming a printer on Printers & setup */
+.name-view { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.name-view .real-name { flex-basis: 100%; margin: 0 0 0 14px; word-break: break-word; }
+.rename-btn { min-height: 40px; padding: 4px 10px; font-size: 13px; }
+.name-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 14em; }
+.name-edit input { flex: 1 1 12em; min-width: 0; }
+.name-edit button { min-height: 40px; padding: 6px 12px; font-size: 14px; }

@@ -140,7 +140,7 @@ function request(method, urlPath, body, opts) {
 const connected = () => !!(state && state.relayUrl && state.token && state.privateKey);
 
 function printerNames() {
-  const names = deps.db.printers.filter((p) => !p.hidden).map((p) => p.name);
+  const names = deps.db.printers.filter((p) => !p.hidden).map((p) => p.displayName || p.name);
   return [...new Set(names)].sort();
 }
 
@@ -219,7 +219,10 @@ async function report(relayId, status, message, collected) {
 // the one that has been here longest.
 function findPrinter(name) {
   const added = (p) => (deps.db.agents.find((a) => a.id === p.agentId) || {}).createdAt || 0;
-  return deps.db.printers.filter((p) => p.name === name && !p.hidden && !p.broken).sort((a, b) => added(a) - added(b))[0] || null;
+  const usable = deps.db.printers.filter((p) => !p.hidden && !p.broken);
+  const oldest = (list) => list.sort((a, b) => added(a) - added(b))[0] || null;
+  // The name people were shown first; the printer's own name too, so a list saved before a rename keeps working.
+  return oldest(usable.filter((p) => p.displayName === name)) || oldest(usable.filter((p) => p.name === name));
 }
 
 // Turns an unlocked file into a print job. Returns the job.
@@ -529,4 +532,4 @@ function pendingFiles() {
   return state.pending.map((e) => path.basename(e.filePath));
 }
 
-module.exports = { expireOld, pendingFiles, isLocked, unlockSettings, lockSettings, start, stop, poll, status, connect, disconnect, addPerson, updatePerson, newCodeFor, removePerson, approve, reject, hashCode, newCode };
+module.exports = { findPrinter, expireOld, pendingFiles, isLocked, unlockSettings, lockSettings, start, stop, poll, status, connect, disconnect, addPerson, updatePerson, newCodeFor, removePerson, approve, reject, hashCode, newCode };

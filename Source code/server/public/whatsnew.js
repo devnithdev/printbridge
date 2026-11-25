@@ -4,6 +4,29 @@
 // Google Translate, so the pop-up is marked "notranslate".
 // Newest first. Keep it to 2-4 short lines a person reads in ten seconds.
 var WHATS_NEW = {
+  "4.2.21": {
+    en: {
+      title: "What's new in PrintBridge",
+      items: [
+        "Printers can now be renamed on Printers & setup, for example “Front desk laser”. Everyone sees the new name; the printer keeps its own name behind the scenes.",
+      ],
+      ok: "Got it",
+    },
+    si: {
+      title: "PrintBridge හි අලුත් දේ",
+      items: [
+        "Printers & setup හි මුද්‍රණ යන්ත්‍රවලට දැන් නම් වෙනස් කළ හැක, උදා: “Front desk laser”. සැමට පෙනෙන්නේ නව නමයි; යන්ත්‍රයේ මුල් නම පසුබිමේ පවතී.",
+      ],
+      ok: "හරි",
+    },
+    ta: {
+      title: "PrintBridge-இல் புதியவை",
+      items: [
+        "Printers & setup-இல் அச்சுப்பொறிகளின் பெயரை இப்போது மாற்றலாம், எ.கா. “Front desk laser”. அனைவருக்கும் புதிய பெயரே தெரியும்; அச்சுப்பொறியின் அசல் பெயர் பின்னணியில் இருக்கும்.",
+      ],
+      ok: "சரி",
+    },
+  },
   "4.2.20": {
     en: {
       title: "What's new in PrintBridge",

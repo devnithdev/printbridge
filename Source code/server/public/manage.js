@@ -43,6 +43,86 @@ async function loadWhere() {
   }
 }
 
+// The printer's name, with a Rename button. People are shown the name given
+// here; the name its computer gave it stays underneath (it is how the printer
+// is found, and still tells which Windows printer this is).
+function nameView(printer, cell) {
+  const box = document.createElement("div");
+  box.className = "name-view";
+  const dot = document.createElement("span");
+  dot.className = "dot " + (printer.online ? "on" : "off");
+  box.appendChild(dot);
+  const text = document.createElement("span");
+  text.className = "pname-text";
+  text.textContent = printer.label;
+  box.appendChild(text);
+  const rename = document.createElement("button");
+  rename.type = "button";
+  rename.className = "secondary rename-btn";
+  rename.textContent = "Rename";
+  rename.title = "Choose the name people see for this printer";
+  rename.setAttribute("aria-label", "Rename " + printer.label);
+  rename.onclick = () => { cell.innerHTML = ""; cell.appendChild(nameEdit(printer, cell)); cell.querySelector("input").focus(); cell.querySelector("input").select(); };
+  box.appendChild(rename);
+  if (printer.displayName) {
+    const real = document.createElement("div");
+    real.className = "real-name hint";
+    real.textContent = printer.name;
+    box.appendChild(real);
+  }
+  return box;
+}
+
+function nameEdit(printer, cell) {
+  const form = document.createElement("div");
+  form.className = "name-edit";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = 60;
+  input.value = printer.label;
+  input.setAttribute("aria-label", "Name shown to people for " + printer.name);
+  form.appendChild(input);
+  const send = async (value) => {
+    for (const b of form.querySelectorAll("button")) b.disabled = true;
+    try {
+      await api("/api/manage/printers/" + encodeURIComponent(printer.id) + "/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: value }),
+      });
+      await loadPrinters();
+    } catch (err) {
+      for (const b of form.querySelectorAll("button")) b.disabled = false;
+      setPageMessage(err.message, "error");
+      input.focus();
+    }
+  };
+  const save = document.createElement("button");
+  save.type = "button";
+  save.textContent = "Save";
+  save.onclick = () => send(input.value);
+  form.appendChild(save);
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "secondary";
+  cancel.textContent = "Cancel";
+  cancel.onclick = () => { cell.innerHTML = ""; cell.appendChild(nameView(printer, cell)); };
+  form.appendChild(cancel);
+  if (printer.displayName) {
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "secondary";
+    reset.textContent = "Use original name";
+    reset.onclick = () => send("");
+    form.appendChild(reset);
+  }
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); save.click(); }
+    else if (event.key === "Escape") { event.preventDefault(); cancel.click(); }
+  });
+  return form;
+}
+
 async function loadPrinters() {
   const list = await api("/api/manage/printers");
   const body = $("printerTable").querySelector("tbody");
@@ -53,9 +133,8 @@ async function loadPrinters() {
     const tr = document.createElement("tr");
 
     const nameCell = document.createElement("td");
-    nameCell.innerHTML =
-      '<span class="dot ' + (printer.online ? "on" : "off") + '"></span>' +
-      escapeHtml(printer.name);
+    nameCell.className = "name-cell";
+    nameCell.appendChild(nameView(printer, nameCell));
     tr.appendChild(nameCell);
 
     const computerCell = document.createElement("td");
@@ -78,7 +157,7 @@ async function loadPrinters() {
     toggle.className = printer.hidden ? "show-btn" : "hide-btn";
     toggle.textContent = printer.hidden ? "Show" : "Hide";
     toggle.title = printer.hidden ? "Show this printer on the print page" : "Hide this printer from the print page";
-    toggle.setAttribute("aria-label", toggle.textContent + " " + printer.name);
+    toggle.setAttribute("aria-label", toggle.textContent + " " + printer.label);
     toggle.onclick = async () => {
       toggle.disabled = true;
       try {
@@ -107,7 +186,7 @@ async function loadPrinters() {
       broken.className = printer.broken ? "show-btn" : "danger";
       broken.textContent = printer.broken ? "Mark working" : "Mark out of order";
       broken.title = printer.broken ? "People can print on it again" : "It stays on the print page, marked out of order, and nothing is sent to it";
-      broken.setAttribute("aria-label", broken.textContent + ": " + printer.name);
+      broken.setAttribute("aria-label", broken.textContent + ": " + printer.label);
       broken.onclick = async () => {
         broken.disabled = true;
         try {
@@ -147,7 +226,7 @@ function typeCell(printer) {
   const cell = document.createElement("td");
   const sel = document.createElement("select");
   sel.className = "type-select";
-  sel.setAttribute("aria-label", "Type of " + printer.name);
+  sel.setAttribute("aria-label", "Type of " + printer.label);
   const current = printer.printerType || "auto";
   for (const [val, label] of TYPE_CHOICES) {
     const opt = document.createElement("option");
@@ -207,7 +286,7 @@ function choiceCell(printer, choices, current, endpoint, groupLabel, found) {
   const seg = document.createElement("div");
   seg.className = "seg color-seg";
   seg.setAttribute("role", "group");
-  seg.setAttribute("aria-label", groupLabel + printer.name);
+  seg.setAttribute("aria-label", groupLabel + printer.label);
   for (const [mode, label] of choices) {
     const button = document.createElement("button");
     button.type = "button";
@@ -319,7 +398,7 @@ function fillClearPick(list) {
   for (const p of list) {
     const o = document.createElement("option");
     o.value = p.id;
-    o.textContent = p.name + " (" + p.computerName + ")";
+    o.textContent = p.label + " (" + p.computerName + ")";
     pick.appendChild(o);
   }
   if (list.some((p) => p.id === was)) pick.value = was;

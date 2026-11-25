@@ -26,6 +26,7 @@ websites (`fake-web.js`) on spare ports, so nothing else needs to be running.
     node t20-printer-settings.js  both sides set by hand, printers marked out of order (and keeping that when they drop out of the list), printer problems (jam, no paper) shown, clearing a queue and removing a computer only on the main computer
     node t21-bucket-expiry.js   the bucket is per device; held files, queued jobs and printouts awaiting approval are thrown away after an hour
     node t22-both-sides.js      both sides: the printer's own default is set for each job, names quoted safely
+    node t23-rename-remote.js   a renamed printer: the drop page shows and accepts the new name, an old saved list still works, hidden and out-of-order printers are never picked
 
 These run on Linux/macOS. The Windows-only parts (the Task Scheduler task,
 the installer) are covered by manual checks on Windows and Mac.

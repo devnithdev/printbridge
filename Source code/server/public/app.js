@@ -1055,7 +1055,7 @@ function renderPrinterPick() {
     option.setAttribute("aria-pressed", printer.id === chosenPrinterId ? "true" : "false");
     option.innerHTML =
       '<span class="ptype" aria-hidden="true">' + kind.icon + "</span>" +
-      '<span class="grow"><span class="pname">' + escapeHtml(printer.name) + "</span>" +
+      '<span class="grow"><span class="pname">' + escapeHtml(printer.label || printer.name) + "</span>" +
       '<span class="chips">' +
       (brand ? '<span class="chip brand" style="--brand:' + brand.color + '">' + brand.name + "</span>" : "") +
       '<span class="chip kind">' + kind.name + "</span>" +
@@ -1237,7 +1237,7 @@ function renderPrinterProblems() {
   const bad = printers.filter((p) => p.online && p.problem);
   box.hidden = !bad.length;
   box.innerHTML = bad.map((p) =>
-    '<div class="printer-problem-row"><strong>' + escapeHtml(p.name) + ":</strong> " + escapeHtml(p.problem) + "</div>"
+    '<div class="printer-problem-row"><strong>' + escapeHtml(p.label || p.name) + ":</strong> " + escapeHtml(p.problem) + "</div>"
   ).join("") + (bad.length
     ? '<div class="hint">' + (bad.length > 1 ? "These printers need" : "This printer needs") +
       " fixing at the printer itself; PrintBridge is fine. Printouts for it wait up to 30 minutes, then are cancelled so they don't come out much later.</div>"
@@ -1314,7 +1314,7 @@ function startCountdown(plan) {
   plan.left = COUNTDOWN_SECONDS;
   showCountdownSeconds(plan.left);
   $("countdownWhat").textContent =
-    (plan.ready.length > 1 ? plan.ready.length + " files" : plan.ready[0].name) + " on " + plan.printer.name + ".";
+    (plan.ready.length > 1 ? plan.ready.length + " files" : plan.ready[0].name) + " on " + (plan.printer.label || plan.printer.name) + ".";
   const bar = document.querySelector(".countdown-bar");
   bar.classList.remove("run");
   void bar.offsetWidth; // restart the animation
@@ -1442,8 +1442,8 @@ async function sendPrints(plan) {
   } else {
     setPageMessage(
       sent > 1
-        ? "Sent " + sent + " files to " + printer.name + "."
-        : "Sent to " + printer.name + ". Go and collect it.",
+        ? "Sent " + sent + " files to " + (printer.label || printer.name) + "."
+        : "Sent to " + (printer.label || printer.name) + ". Go and collect it.",
       "ok"
     );
     pageMessageTimer = setTimeout(() => setPageMessage(null), 6000);
