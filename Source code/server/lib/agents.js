@@ -9,7 +9,9 @@
 // stranger pretending to BE one of your printer computers.
 
 const { EventEmitter } = require("events");
-const { db, save } = require("./store");
+const path = require("path");
+const { db, save, DATA_FILE } = require("./store");
+const durable = require("../../agent/lib/durable");
 const { hashToken } = require("./ids");
 
 const events = new EventEmitter();
@@ -56,9 +58,57 @@ function disconnectAgent(agentId) {
 // What was set by hand on Printers & setup, kept for a printer that drops out
 // of its computer's list, so it isn't lost when the printer comes back.
 const KEPT_SETTINGS = ["hidden", "broken", "colorMode", "duplexMode", "printerType", "displayName"];
-function rememberSettings(printer) {
+function keptOf(printer) {
   const kept = {};
   for (const key of KEPT_SETTINGS) if (printer[key] !== undefined && printer[key] !== false && printer[key] !== "auto" && printer[key] !== "") kept[key] = printer[key];
+  return kept;
+}
+
+// The same settings, also in a file of their own, by computer name and printer
+// name (not the ids in the printer list, which are made again if that list is
+// ever lost or a computer registers anew). So an update, a restart or a lost list
+// never puts back the colour, both sides, hidden, out of order and rename choices:
+// the printer is recognised by where it is and what it is called.
+// Written only when someone changes a setting here, never when printers register,
+// so a computer that arrives with nothing set can't wipe what was chosen.
+const SETTINGS_FILE = path.join(path.dirname(DATA_FILE), "printer-settings.json");
+let kept = null;
+function keptSettings() {
+  if (!kept) {
+    const read = durable.readJson(SETTINGS_FILE);
+    kept = read && typeof read === "object" && !Array.isArray(read) ? read : {};
+  }
+  return kept;
+}
+const settingsKey = (agentName, printerName) => agentName + "::" + printerName;
+
+function persistSettings() {
+  const all = keptSettings();
+  let changed = false;
+  for (const p of db.printers) {
+    const agent = db.agents.find((a) => a.id === p.agentId);
+    const key = settingsKey(agent ? agent.name : p.agentId, p.name);
+    const now = keptOf(p);
+    const same = JSON.stringify(all[key] || {}) === JSON.stringify(now);
+    if (same) continue;
+    if (Object.keys(now).length) all[key] = now; else delete all[key];
+    changed = true;
+  }
+  if (!changed) return;
+  const keys = Object.keys(all);
+  for (const old of keys.slice(0, Math.max(0, keys.length - 500))) delete all[old]; // the oldest go
+  try {
+    durable.writeJson(SETTINGS_FILE, all);
+  } catch (err) {
+    console.log("Couldn't save the printer settings file: " + err.message);
+  }
+}
+
+// First start with this file: copy what is set now, so nothing chosen before has to be set again.
+if (!require("fs").existsSync(SETTINGS_FILE)) persistSettings();
+
+function rememberSettings(printer) {
+  const kept = keptOf(printer);
   if (!Object.keys(kept).length) return;
   db.printerSettings = db.printerSettings || {};
   db.printerSettings[printer.id] = kept;
@@ -89,7 +139,7 @@ function rememberPrinters(agent, printers) {
         colorMode: "auto",
         capabilities: null,
         updatedAt: 0,
-      }, (db.printerSettings || {})[id]);
+      }, keptSettings()[settingsKey(agent.name, name)], (db.printerSettings || {})[id]);
       if (db.printerSettings) delete db.printerSettings[id];
       db.printers.push(record);
     }
@@ -145,6 +195,7 @@ function setColorMode(record, mode) {
   record.colorMode = mode;
   applyColorMode(record);
   save();
+  persistSettings();
   events.emit("printers-changed");
   return true;
 }
@@ -154,6 +205,7 @@ function setDuplexMode(record, mode) {
   record.duplexMode = mode;
   applyColorMode(record);
   save();
+  persistSettings();
   events.emit("printers-changed");
   return true;
 }
@@ -188,6 +240,7 @@ function setDisplayName(record, text) {
   if (target) record.displayName = target;
   else delete record.displayName;
   save();
+  persistSettings();
   events.emit("printers-changed");
   return true;
 }
@@ -196,6 +249,7 @@ function setPrinterType(record, type) {
   if (!PRINTER_TYPES.has(type)) return false;
   record.printerType = type;
   save();
+  persistSettings();
   events.emit("printers-changed");
   return true;
 }
@@ -451,6 +505,8 @@ module.exports = {
   setColorMode,
   setDuplexMode,
   setPrinterType,
+  persistSettings,
+  rememberPrinters,
   setDisplayName,
   labelOf,
   kindOf,

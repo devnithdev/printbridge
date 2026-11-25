@@ -4,6 +4,29 @@
 // Google Translate, so the pop-up is marked "notranslate".
 // Newest first. Keep it to 2-4 short lines a person reads in ten seconds.
 var WHATS_NEW = {
+  "4.2.22": {
+    en: {
+      title: "What's new in PrintBridge",
+      items: [
+        "Printer settings (names, colour, both sides, hidden, out of order) are no longer lost when PrintBridge updates itself or restarts.",
+      ],
+      ok: "Got it",
+    },
+    si: {
+      title: "PrintBridge හි අලුත් දේ",
+      items: [
+        "PrintBridge තමන්ම යාවත්කාලීන වූ විට හෝ නැවත ආරම්භ වූ විට මුද්‍රණ යන්ත්‍රවල සැකසුම් (නම්, වර්ණය, දෙපැත්තේ මුද්‍රණය, සඟවා තැබීම, අක්‍රිය ලකුණ) තවදුරටත් නැති නොවේ.",
+      ],
+      ok: "හරි",
+    },
+    ta: {
+      title: "PrintBridge-இல் புதியவை",
+      items: [
+        "PrintBridge தானாகப் புதுப்பிக்கும்போதோ மீண்டும் தொடங்கும்போதோ அச்சுப்பொறி அமைப்புகள் (பெயர்கள், நிறம், இருபக்கம், மறைத்தல், பழுது குறி) இனி இழக்கப்படாது.",
+      ],
+      ok: "சரி",
+    },
+  },
   "4.2.21": {
     en: {
       title: "What's new in PrintBridge",

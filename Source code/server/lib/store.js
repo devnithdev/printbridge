@@ -38,11 +38,31 @@ function writeFileSafely(file, text) {
   durable.writeText(file, text);
 }
 
+const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
 function load() {
+  // Right after an update the file can be busy (security software looking at
+  // it) or not yet readable by whoever started this. That is NOT "damaged":
+  // wait for it, and if it still can't be opened, stop - the program starts
+  // this again in a moment - rather than start empty and overwrite the real list.
+  const tries = parseInt(process.env.PRINT_LOAD_TRIES, 10) || 15;
+  const wait = parseInt(process.env.PRINT_LOAD_WAIT_MS, 10) || 2000;
+  let read = durable.readJsonChecked(DATA_FILE);
+  for (let i = 1; i < tries && !read.value && read.unreadable; i++) {
+    pause(wait);
+    read = durable.readJsonChecked(DATA_FILE);
+  }
+  if (!read.value && read.unreadable) {
+    console.error("");
+    console.error("  The saved printer list can't be opened right now (permission, or in use).");
+    console.error("  Leaving it exactly as it is; this will start again by itself shortly.");
+    console.error("");
+    process.exit(1);
+  }
   if (!fs.existsSync(DATA_FILE) && !fs.existsSync(DATA_FILE + ".bak")) {
     return JSON.parse(JSON.stringify(EMPTY)); // first run: nothing saved yet
   }
-  const saved = durable.readJson(DATA_FILE); // falls back to the backup copy
+  const saved = read.value; // (the backup copy too, if the main one is damaged)
   if (saved && typeof saved === "object") {
     return Object.assign(JSON.parse(JSON.stringify(EMPTY)), saved);
   }

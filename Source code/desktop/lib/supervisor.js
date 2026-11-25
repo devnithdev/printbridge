@@ -400,12 +400,14 @@ async function start(mode) {
     if (lock) lock.onRequest = g.onRequest;
   })();
 
-  // Just after Windows starts, the startup task may not have started yet;
-  // give it a minute before running its parts here instead, so it - not
-  // this sign-in - normally runs them.
+  // The startup task (the system account) is what should run the website and
+  // printer sharing. Just after Windows starts, and just after an update
+  // restarts it, it may not have taken over yet: give it two minutes before
+  // running them here instead. Running them as the signed-in person means a
+  // different set of file rights, so it is a last resort, not a race to win.
   const record = P.readRecord();
-  if (record.startupTask && os.uptime() < 5 * 60) {
-    for (let i = 0; i < 12 && !(await isRunning(P.LOCK_PORT)); i++) await wait(5000);
+  if (record.startupTask) {
+    for (let i = 0; i < 24 && !(await isRunning(P.LOCK_PORT)); i++) await wait(5000);
   }
   const lock = await holdLock(P.LOCK_PORT, "background program");
   if (record.startupTask) log.line("The startup task isn't running the background parts, so this sign-in runs them.");

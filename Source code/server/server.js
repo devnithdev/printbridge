@@ -564,6 +564,7 @@ app.post("/api/manage/printers/:id/hidden", (req, res) => {
   }
   printer.hidden = !!req.body.hidden;
   save();
+  agents.persistSettings();
   jobs.broadcastQueue();
   res.json({ ok: true });
 });
@@ -610,6 +611,7 @@ app.post("/api/manage/printers/:id/broken", (req, res) => {
     }
   }
   save();
+  agents.persistSettings();
   agents.events.emit("printers-changed");
   jobs.broadcastQueue();
   res.json({ ok: true });

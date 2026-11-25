@@ -108,6 +108,24 @@ function readJson(file) {
   }
 }
 
+// Like readJson, but says why nothing could be read: the file can be missing or
+// damaged (then { value: null }), or simply not openable right now - no
+// permission, or in use by security software or a program (then
+// { value: null, unreadable: true }). The two must never be mixed up: a file that
+// can't be opened is still there, and must not be thrown away as "damaged".
+const BUSY = ["EACCES", "EPERM", "EBUSY", "EMFILE", "ENFILE", "EAGAIN", "ENOTEMPTY"];
+function readJsonChecked(file) {
+  let unreadable = false;
+  for (const f of [file, file + ".bak"]) {
+    try {
+      return { value: parse(f), unreadable: false };
+    } catch (err) {
+      if (err && BUSY.includes(err.code)) unreadable = true;
+    }
+  }
+  return { value: null, unreadable };
+}
+
 // Which copy readJson() would use: "file", "backup" or "" (none).
 function whichCopy(file) {
   try { parse(file); return "file"; } catch (err) { /* try the backup */ }
@@ -127,4 +145,4 @@ function removeJson(file) {
   } catch (err) { /* folder gone */ }
 }
 
-module.exports = { writeText, writeJson, readJson, removeJson, whichCopy };
+module.exports = { writeText, writeJson, readJson, readJsonChecked, removeJson, whichCopy };

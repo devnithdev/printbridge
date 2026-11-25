@@ -70,7 +70,7 @@ Install the **main computer** first, then the **computers with printers**, then 
 | `Source code/installer-mac` | macOS `.pkg` and `.dmg` installer scripts |
 | `Source code/relay` | Optional Cloudflare Worker drop page for remote printing ("Printing from anywhere") |
 | `Source code/release/publish-update.js` | Key generation, version bumping, release signing, and publishing |
-| `Source code/tests` | Automated test suites (`t1-durable.js` through `t23-rename-remote.js`, no t7) |
+| `Source code/tests` | Automated test suites (`t1-durable.js` through `t24-settings-survive.js`, no t7) |
 | `BUILD-ALL.command` | Builds both the Windows and Mac installers from start to finish on a Mac |
 | `PUBLISH-UPDATE.command` | Signs the release manifest and publishes an automatic update |
 
@@ -100,6 +100,7 @@ node t20-printer-settings.js
 node t21-bucket-expiry.js
 node t22-both-sides.js
 node t23-rename-remote.js
+node t24-settings-survive.js
 ```
 
 `tests/README.md` lists every test, including t2, t4, t5, t6, t8 and t9, which look for other computers on the network or take longer, and run before bigger changes. CI leaves them out, and t4, t5 and t6 need a real network card. There is no t7.

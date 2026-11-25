@@ -57,6 +57,7 @@ jobs:
           node t21-bucket-expiry.js
           node t22-both-sides.js
           node t23-rename-remote.js
+          node t24-settings-survive.js
 
   windows:
     name: Windows installer
