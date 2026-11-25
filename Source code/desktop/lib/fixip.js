@@ -292,8 +292,9 @@ async function apply(address, given) {
     }
   }
   if (!works) {
-    await setAutomatic(info);
-    return { ok: false, message: "The fixed address " + address + " didn't work on this network" + (set.detail ? " (" + set.detail + ")" : "") + ", so it was changed back to automatic." };
+    const back = await setAutomatic(info);
+    return { ok: false, message: "The fixed address " + address + " didn't work on this network" + (set.detail ? " (" + set.detail + ")" : "") +
+      (back ? ", so it was changed back to automatic." : ", and it could not be changed back to automatic. Set this computer's network address to automatic in its network settings.") };
   }
   P.updateRecord({
     fixedAddress: {

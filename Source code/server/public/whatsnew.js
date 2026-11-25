@@ -9,6 +9,7 @@ var WHATS_NEW = {
       title: "What's new in PrintBridge",
       items: [
         "Printer settings (names, colour, both sides, hidden, out of order) are no longer lost when PrintBridge updates itself or restarts.",
+        "Many smaller fixes: pressing Edit in the 7-second notice keeps your choices, several files upload more reliably, and renaming a printer keeps the “print from anywhere” lists working.",
       ],
       ok: "Got it",
     },
@@ -16,6 +17,7 @@ var WHATS_NEW = {
       title: "PrintBridge හි අලුත් දේ",
       items: [
         "PrintBridge තමන්ම යාවත්කාලීන වූ විට හෝ නැවත ආරම්භ වූ විට මුද්‍රණ යන්ත්‍රවල සැකසුම් (නම්, වර්ණය, දෙපැත්තේ මුද්‍රණය, සඟවා තැබීම, අක්‍රිය ලකුණ) තවදුරටත් නැති නොවේ.",
+        "තවත් කුඩා නිවැරදි කිරීම් රැසක්: 7 තත්පර දැනුම්දීමේදී Edit ඔබන විට ඔබේ තේරීම් තබා ගැනේ, ගොනු කිහිපයක් වඩා විශ්වසනීයව උඩුගත වේ, මුද්‍රණ යන්ත්‍රයක නම වෙනස් කළ පසුත් “ඕනෑම තැනක සිට මුද්‍රණය” ලැයිස්තු ක්‍රියා කරයි.",
       ],
       ok: "හරි",
     },
@@ -23,6 +25,7 @@ var WHATS_NEW = {
       title: "PrintBridge-இல் புதியவை",
       items: [
         "PrintBridge தானாகப் புதுப்பிக்கும்போதோ மீண்டும் தொடங்கும்போதோ அச்சுப்பொறி அமைப்புகள் (பெயர்கள், நிறம், இருபக்கம், மறைத்தல், பழுது குறி) இனி இழக்கப்படாது.",
+        "மேலும் பல சிறிய திருத்தங்கள்: 7 வினாடி அறிவிப்பில் Edit அழுத்தினால் உங்கள் தேர்வுகள் அப்படியே இருக்கும், பல கோப்புகள் மேலும் நம்பகமாகப் பதிவேறும், அச்சுப்பொறியின் பெயரை மாற்றிய பின்னும் “வெளியிலிருந்து அச்சிடு” பட்டியல்கள் வேலை செய்யும்.",
       ],
       ok: "சரி",
     },
@@ -106,8 +109,8 @@ var WHATS_NEW = {
     en: {
       title: "What's new in PrintBridge",
       items: [
-        "Double-sided printing now works on printers like the Canon LBP6230.",
-        "On printers that can't turn the paper over by themselves, choose “Double-sided (you turn the paper over)”: the fronts print, PrintBridge shows how to turn the stack over, then the backs print.",
+        "Printing on both sides now works on printers like the Canon LBP6230.",
+        "On printers that can't turn the paper over by themselves, choose “Both sides (you turn the paper over)”: the fronts print, PrintBridge shows how to turn the stack over, then the backs print.",
         "Each printer now shows whether it prints both sides by itself, by hand, or one side only.",
         "If PrintBridge was switched off in Windows Startup apps, it now starts anyway and explains how to switch it back on.",
       ],

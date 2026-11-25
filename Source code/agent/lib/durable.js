@@ -120,7 +120,12 @@ function readJsonChecked(file) {
     try {
       return { value: parse(f), unreadable: false };
     } catch (err) {
-      if (err && BUSY.includes(err.code)) unreadable = true;
+      if (err && BUSY.includes(err.code)) {
+        // The main file is there but can't be opened right now: the older backup
+        // copy must not stand in for it (it would then be saved over the real one).
+        if (f === file) return { value: null, unreadable: true };
+        unreadable = true;
+      }
     }
   }
   return { value: null, unreadable };

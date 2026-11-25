@@ -1110,6 +1110,8 @@ Section "${BRAND}" SecMain
   !insertmacro QUIET '"$SYSDIR\schtasks.exe" /End /TN "${APP}"'
   !insertmacro QUIET '"$SYSDIR\schtasks.exe" /Delete /TN "${APP}" /F'
   !insertmacro QUIET '"$SYSDIR\taskkill.exe" /F /IM ${EXE}'
+  ; A running SumatraPDF would lock its file and make the copy below fail.
+  !insertmacro QUIET '"$SYSDIR\taskkill.exe" /F /IM SumatraPDF.exe'
   Sleep 1500
 
   DetailPrint "Copying files..."
@@ -1119,7 +1121,8 @@ Section "${BRAND}" SecMain
   ; one is in place, so a copy that fails half-way can be undone.
   ${If} ${FileExists} "$INSTDIR\${EXE}"
     Delete "$INSTDIR\${EXE}.bak"
-    CopyFiles /SILENT "$INSTDIR\${EXE}" "$INSTDIR\${EXE}.bak"
+    ; A rename, not a copy: a copy cut short on a full disk would be "restored" as a broken program.
+    Rename "$INSTDIR\${EXE}" "$INSTDIR\${EXE}.bak"
   ${EndIf}
   ; When updating, the old program file must be gone before the new one
   ; can take its place. Give Windows a few seconds to let go of it.
@@ -1146,7 +1149,12 @@ Section "${BRAND}" SecMain
     Delete "$INSTDIR\${EXE}.bak"
     !insertmacro OP 'install-service'
     !insertmacro OP 'start-service'
-    Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
+    ; In an automatic update Setup runs as the system account: start it for the person signed in, not as the system.
+    ${If} $Update == "1"
+      !insertmacro OP 'start-signed-in'
+    ${Else}
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
+    ${EndIf}
     MessageBox MB_OK|MB_ICONSTOP "Setup couldn't replace the ${BRAND} that is already on this computer, because Windows is still using it. The version already here has been started again and keeps working, including after a restart.$\r$\n$\r$\nRestart the computer and run Setup again." /SD IDOK
     SetErrorLevel 4
     Abort
@@ -1164,7 +1172,11 @@ Section "${BRAND}" SecMain
       Rename "$INSTDIR\${EXE}.bak" "$INSTDIR\${EXE}"
       !insertmacro OP 'install-service'
       !insertmacro OP 'start-service'
-      Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
+      ${If} $Update == "1"
+        !insertmacro OP 'start-signed-in'
+      ${Else}
+        Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
+      ${EndIf}
       MessageBox MB_OK|MB_ICONSTOP "Setup could not copy the new version of ${BRAND} into $INSTDIR. The version that was already here has been put back and started again, so printing carries on.$\r$\n$\r$\nThis is usually security software or a full disk. Restart the computer and run Setup again." /SD IDOK
       SetErrorLevel 4
       Abort
@@ -1190,11 +1202,8 @@ Section "${BRAND}" SecMain
   CreateDirectory "$APPDATA\${APP}"
   SetDetailsPrint both
   !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
-  ; Not the website's own folder: it holds the remote printing key and the
-  ; documents waiting to be printed, which other people signed in here have
-  ; no business reading. Only the system (which runs the website) and administrators.
   CreateDirectory "$APPDATA\${APP}\website"
-  !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F /T /Q'
+  CreateDirectory "$APPDATA\${APP}\printer"
 
   ; Save this computer's choices (a UTF-16 file, so any name survives).
   FileOpen $9 "$PLUGINSDIR\choices.txt" w
@@ -1327,6 +1336,23 @@ Section "${BRAND}" SecMain
   ; (since 4.1.3): there it runs nothing but automatic updates, which need
   ; the system account's rights and must work with nobody signed in.
   !insertmacro OP 'install-service'
+  ; The website's own folder holds the remote printing key and the documents
+  ; waiting to be printed, and the printer folder holds this computer's
+  ; connection key and settings: other people signed in here have no business
+  ; reading or changing them. Only the system account (which runs both through
+  ; the startup task) and administrators - but only once that task really
+  ; exists, because otherwise a signed-in person has to be able to run them.
+  ; (The "everyone may modify" grant above also left entries of its own on what
+  ; was already there, so those are taken away first.)
+  nsExec::ExecToStack '"$SYSDIR\schtasks.exe" /Query /TN "${APP}"'
+  Pop $0
+  Pop $1
+  ${If} $0 == 0
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /remove:g *S-1-5-32-545 /T /Q'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F /T /Q'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\printer" /remove:g *S-1-5-32-545 /T /Q'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\printer" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F *S-1-5-32-545:(OI)(CI)RX /T /Q'
+  ${EndIf}
 
   DetailPrint "Adding ${BRAND} to the Start menu and desktop..."
   SetDetailsPrint none
@@ -1789,6 +1815,7 @@ Section "Uninstall"
     Sleep 1500
     IntOp $R0 $R0 + 1
   ${LoopUntil} $R0 >= 10
+  Delete "$INSTDIR\${EXE}.bak"
   Delete "$INSTDIR\SumatraPDF.exe"
   Delete "$INSTDIR\SumatraPDF-LICENCE.txt"
   Delete "$INSTDIR\office-printing.ico"

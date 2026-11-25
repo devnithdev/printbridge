@@ -215,7 +215,9 @@ async function gather(startIfStopped) {
       P.IS_MAC
         ? `Open ${whereShortcuts} and choose "Restart ${B.NAME}" (it will ask for an administrator password). If this keeps happening, restart the computer.`
         : `Open the Start menu, find ${B.NAME} and choose "Restart ${B.NAME}". ` +
-          "If this keeps happening, restart the computer.");
+          "If this keeps happening, restart the computer." +
+          (settings.role !== "client" && P.readRecord().startupTask
+            ? ` The website and printer sharing are run by ${B.NAME}'s startup task: if "Restart" doesn't bring them back, run ${B.NAME} Setup again.` : ""));
   }
 
   // Windows: the startup task that brings printing back after a power cut
@@ -282,9 +284,12 @@ async function gather(startIfStopped) {
             " <a href=\"http://localhost:" + P.PORT + "/poster.html\">Print the sign for the wall</a>."
           : "This computer isn't connected to a network right now, so nobody else can reach it.");
     } else {
+      const stopped = (P.readJson(P.STATUS_FILE) || {}).parts;
+      const web = stopped && stopped.website;
       add(false, "The printing website isn't answering",
         justStarted ? "It was only just started - wait a minute and check again." :
-          `Choose "Restart ${B.NAME}" from ${whereShortcuts}. If that doesn't help, restart the computer.`);
+          `Choose "Restart ${B.NAME}" from ${whereShortcuts}. If that doesn't help, restart the computer.` +
+          (web && web.restarts ? ` (It has stopped and restarted ${web.restarts} time${web.restarts === 1 ? "" : "s"}${web.lastExit ? "; last time: " + esc(web.lastExit) : ""}.)` : ""));
     }
     // "Keep this computer's address the same" (see fixip.js).
     try {

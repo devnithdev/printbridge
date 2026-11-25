@@ -472,7 +472,7 @@ function listActiveQueue(viewerDeviceId) {
       id: job.id,
       position: index + 1,
       label: job.label,
-      printerName: job.printerName,
+      printerName: printer ? agents.labelOf(printer) : job.printerName, // the name people see now
       printerId: job.printerId,
       printerOnline,
       printerProblem: printerOnline ? agents.problemOf(printer) : "",

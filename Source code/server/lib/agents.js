@@ -73,17 +73,21 @@ function keptOf(printer) {
 // so a computer that arrives with nothing set can't wipe what was chosen.
 const SETTINGS_FILE = path.join(path.dirname(DATA_FILE), "printer-settings.json");
 let kept = null;
+let keptUnreadable = false; // the file is there but can't be opened right now: it is not written over
 function keptSettings() {
   if (!kept) {
-    const read = durable.readJson(SETTINGS_FILE);
-    kept = read && typeof read === "object" && !Array.isArray(read) ? read : {};
+    const read = durable.readJsonChecked(SETTINGS_FILE);
+    keptUnreadable = !!read.unreadable;
+    kept = read.value && typeof read.value === "object" && !Array.isArray(read.value) ? read.value : {};
+    if (keptUnreadable) kept = null; // look again next time
   }
-  return kept;
+  return kept || {};
 }
 const settingsKey = (agentName, printerName) => agentName + "::" + printerName;
 
 function persistSettings() {
   const all = keptSettings();
+  if (keptUnreadable) return; // never replace a file that could not be read with a part of it
   let changed = false;
   for (const p of db.printers) {
     const agent = db.agents.find((a) => a.id === p.agentId);
@@ -340,7 +344,7 @@ function listPrintersForManaging() {
         capabilities: p.capabilities,
       };
     })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function findPrinter(id) {

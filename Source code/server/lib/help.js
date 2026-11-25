@@ -39,8 +39,12 @@ function create(label, message) {
   return alert;
 }
 
+// A call for help nobody answered doesn't stay on everyone's screen for ever:
+// like everything else that waits, it goes after an hour.
+const MAX_AGE_MS = 60 * 60 * 1000;
 function listOpen() {
-  return db.helpAlerts.filter((a) => !a.resolved).map(publicAlert);
+  const cutoff = Date.now() - MAX_AGE_MS;
+  return db.helpAlerts.filter((a) => !a.resolved && a.createdAt > cutoff).map(publicAlert);
 }
 
 function resolve(id) {

@@ -139,6 +139,9 @@ function signatureMatches(data, signature) {
 // there instead of being kept in memory.
 function fetch(url, opts, redirects) {
   redirects = redirects || 0;
+  // deadlineMs: the whole download (all redirects together) may not take longer than this,
+  // however slowly it trickles in - a stuck download would keep every later check waiting.
+  if (opts.deadlineMs && !opts.deadlineAt) opts = Object.assign({}, opts, { deadlineAt: Date.now() + opts.deadlineMs });
   return new Promise((resolve, reject) => {
     let u;
     try { u = new URL(url); } catch (err) { return reject(new Error("not a web address: " + url)); }
@@ -192,6 +195,11 @@ function fetch(url, opts, redirects) {
     });
     req.on("timeout", () => req.destroy(new Error("no answer (timed out)")));
     req.on("error", reject);
+    if (opts.deadlineAt) {
+      const deadline = setTimeout(() => req.destroy(new Error("the download took too long")), Math.max(1000, opts.deadlineAt - Date.now()));
+      if (deadline.unref) deadline.unref();
+      req.on("close", () => clearTimeout(deadline));
+    }
   });
 }
 
@@ -252,8 +260,26 @@ async function ensureDownloaded(version, entry) {
   if (fs.existsSync(file) && (await sha256OfFile(file)) === entry.sha256) return file;
   const part = path.join(dir, "download.part");
   try { fs.rmSync(part, { force: true }); } catch (err) { /* fine */ }
+  // Not even started when there is no room for it (the installer, and the same again while it is checked).
+  try {
+    if (typeof fs.statfsSync === "function") {
+      const st = fs.statfsSync(dir);
+      const free = Number(st.bavail) * Number(st.bsize);
+      if (free < entry.size * 2) throw new Error("there isn't enough free space on this computer to download the update (" + Math.round(free / 1048576) + " MB free)");
+    }
+  } catch (err) {
+    if (/free space/.test(String(err.message))) throw err;
+    /* can't tell: try anyway */
+  }
   log.line("Downloading version " + version + " (" + Math.round(entry.size / 1048576) + " MB) from " + entry.url);
-  const got = await fetch(entry.url, { maxBytes: entry.size, toFile: part, timeoutMs: 60000 });
+  let got;
+  try {
+    got = await fetch(entry.url, { maxBytes: entry.size, toFile: part, timeoutMs: 60000, deadlineMs: 20 * 60 * 1000 });
+  } catch (err) {
+    // A part that was cut off is useless and may be 600 MB on a disk that is nearly full.
+    try { fs.rmSync(part, { force: true }); } catch (e) { /* fine */ }
+    throw err;
+  }
   if (got.size !== entry.size || got.sha256 !== entry.sha256) {
     try { fs.rmSync(part, { force: true }); } catch (err) { /* fine */ }
     throw new Error("the downloaded installer doesn't match latest.json (size or fingerprint), so it was thrown away");
@@ -654,7 +680,15 @@ function noteFailure(version, message) {
 async function tidyUp() {
   if (fs.existsSync(APPLY())) return;
   const dir = updateDir();
+  // After an update that failed, the program that was put back is kept for a week
+  // (the message people were shown says where it is).
+  let keepPrevious = false;
+  try {
+    const last = JSON.parse(fs.readFileSync(RESULT(), "utf8"));
+    keepPrevious = !!last && last.ok === false && Date.now() - fs.statSync(path.join(dir, "previous.bin")).mtimeMs < 7 * 24 * 3600 * 1000;
+  } catch (err) { /* no result or no copy: nothing to keep */ }
   for (const n of ["PrintBridgeUpdater.exe", "PrintBridgeUpdater", "previous.bin", "runner.lock", "download.part"]) {
+    if (n === "previous.bin" && keepPrevious) continue;
     try { fs.rmSync(path.join(dir, n), { force: true }); } catch (err) { /* still running; next time */ }
   }
   if (P.IS_WINDOWS && P.IS_PACKAGED) {
@@ -685,6 +719,9 @@ function start(options) {
   const state = readState();
   state.version = VERSION;
   state.off = "";
+  // "Being installed" from before this program started: the install has finished (or was
+  // put back) by now, unless the runner still has its plan.
+  if (state.status === "installing" && !fs.existsSync(APPLY())) state.status = "";
   writeState(state);
   tidyUp().catch(() => {});
   log.line("Automatic updates are on (this is version " + VERSION + "; looking at " + manifestUrl() + ").");

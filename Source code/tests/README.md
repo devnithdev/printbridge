@@ -28,6 +28,7 @@ websites (`fake-web.js`) on spare ports, so nothing else needs to be running.
     node t22-both-sides.js      both sides: the printer's own default is set for each job, names quoted safely
     node t23-rename-remote.js   a renamed printer: the drop page shows and accepts the new name, an old saved list still works, hidden and out-of-order printers are never picked
     node t24-settings-survive.js  an update never resets printer settings: a list that cannot be opened is left alone, and choices are kept by computer and printer name
+    node t25-fixes.js           files named .pdf must be PDFs, a cap on waiting files, oversize printouts, help alerts expire, people lists follow a rename
 
 These run on Linux/macOS. The Windows-only parts (the Task Scheduler task,
 the installer) are covered by manual checks on Windows and Mac.

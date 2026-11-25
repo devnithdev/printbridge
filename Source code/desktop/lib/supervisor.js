@@ -400,17 +400,24 @@ async function start(mode) {
     if (lock) lock.onRequest = g.onRequest;
   })();
 
-  // The startup task (the system account) is what should run the website and
-  // printer sharing. Just after Windows starts, and just after an update
-  // restarts it, it may not have taken over yet: give it two minutes before
-  // running them here instead. Running them as the signed-in person means a
-  // different set of file rights, so it is a last resort, not a race to win.
+  // The startup task (the system account) runs the website and printer sharing.
+  // The website's folder is closed to everyone but the system and administrators
+  // (the installer sees to it), so a copy run by a signed-in person must not try:
+  // it could not open the saved printer list. It only does the printouts part
+  // (above) and says now and then when the startup task isn't there, instead of
+  // starting something that can't work or fights the task for the lock.
   const record = P.readRecord();
   if (record.startupTask) {
-    for (let i = 0; i < 24 && !(await isRunning(P.LOCK_PORT)); i++) await wait(5000);
+    const sayNoTask = async () => {
+      if (!(await isRunning(P.LOCK_PORT))) log.line("The startup task isn't running the website and printer sharing. Run Setup again to fix this (the printouts part keeps working).");
+    };
+    setTimeout(() => { sayNoTask().catch(() => {}); }, 3 * 60 * 1000).unref();
+    setInterval(() => { sayNoTask().catch(() => {}); }, 30 * 60 * 1000).unref();
+    return;
   }
+  // No startup task on this computer (an older setup): this sign-in runs them, as before.
   const lock = await holdLock(P.LOCK_PORT, "background program");
-  if (record.startupTask) log.line("The startup task isn't running the background parts, so this sign-in runs them.");
+  log.line("There is no startup task, so this sign-in runs the background parts.");
   try { fs.rmSync(path.join(P.PRINTER_DIR, "status.json"), { force: true }); } catch (err) { /* fine */ }
   // Automatic updates need administrator rights, which a sign-in doesn't
   // have; this copy only says so when asked (see updater.js).

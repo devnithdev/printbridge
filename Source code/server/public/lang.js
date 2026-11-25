@@ -71,10 +71,28 @@
     if (more) more.remove();
     var have = {};
     FIRST.forEach(function (p) { have[p[0]] = 1; });
+    // A saved language was added as its bare code until now: take that out, so it
+    // shows once, under its real name.
+    var raw = saved && !have[saved] ? select.querySelector('option[value="' + saved + '"]') : null;
+    if (raw) raw.remove();
     Array.prototype.forEach.call(combo.options, function (o) {
       if (o.value && !have[o.value]) select.add(new Option(o.textContent, o.value));
     });
+    if (saved) select.value = saved;
     select.dataset.full = "1";
+  }
+
+  // A short note beside the picker (the page can't be translated without the internet).
+  var note = null;
+  function say(text) {
+    if (!note) {
+      note = document.createElement("span");
+      note.className = "lang-note notranslate";
+      note.setAttribute("translate", "no");
+      note.setAttribute("role", "status");
+      box.appendChild(note);
+    }
+    note.textContent = text;
   }
 
   function apply(lang) {
@@ -82,7 +100,8 @@
     if (lang === "en") { clearCookie(); location.reload(); return; }
     loadGoogle().then(function (combo) {
       fillFrom(combo);
-      if (!combo) return;
+      if (!combo) { say("Translation needs an internet connection."); return; }
+      say("");
       combo.value = lang;
       combo.dispatchEvent(new Event("change"));
     });
@@ -109,6 +128,7 @@
   // start clean and apply the saved choice through the widget instead.
   clearCookie();
   if (saved && saved !== "en") {
+    // Shown as its code until the list of languages arrives (then fillFrom gives it its real name).
     if (!select.querySelector('option[value="' + saved + '"]')) select.add(new Option(saved, saved));
     select.value = saved;
     apply(saved);

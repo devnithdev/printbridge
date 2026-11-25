@@ -533,8 +533,10 @@ async function loadConfig() {
     serverUrl: envUrl || fromFile.serverUrl || "ws://localhost:3000/agent",
     token: envToken || fromFile.token || "",
     agentName: process.env.PRINT_AGENT_NAME || fromFile.agentName || os.hostname(),
-    sumatraPath: fromFile.sumatraPath || process.env.SUMATRA_PATH || "",
-    ghostscriptPath: fromFile.ghostscriptPath || process.env.GHOSTSCRIPT_PATH || "",
+    // Installed: never a program named in a file any signed-in person can edit
+    // (this runs as the system account); the copy Setup put next to this program is used.
+    sumatraPath: MANAGED ? "" : fromFile.sumatraPath || process.env.SUMATRA_PATH || "",
+    ghostscriptPath: MANAGED ? "" : fromFile.ghostscriptPath || process.env.GHOSTSCRIPT_PATH || "",
     dryRun: process.env.AGENT_DRY_RUN === "1" || fromFile.dryRun === true,
     baseDir: BASE_DIR,
   };

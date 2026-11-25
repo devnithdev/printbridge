@@ -32,7 +32,7 @@ const PRINT_TEXT = { wall: "Print this sign", card: "Print the desk cards", stic
       "This computer doesn't seem to be on a network right now, so there's no " +
       "address other devices could use. Connect it to the office Wi-Fi and reload.";
     $("posterAddress").textContent = "(not on a network)";
-    current = { url: location.origin, label: location.origin };
+    current = null; // no address to put on a sign: never a "localhost" one that nobody else can reach
     return;
   }
 

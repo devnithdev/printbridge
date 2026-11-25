@@ -66,7 +66,8 @@ function convertToPdf(inputPath) {
 async function convertNow(inputPath) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "print-convert-"));
   try {
-    let lastError = "LibreOffice was not found.";
+    let lastError = "";
+    let launched = false; // LibreOffice really started (even if it then failed)
 
     for (const command of CANDIDATES) {
       const result = await tryRun(command, [
@@ -81,6 +82,7 @@ async function convertNow(inputPath) {
       ]);
 
       if (!result.error) {
+        launched = true;
         const produced = fs
           .readdirSync(outDir)
           .filter((f) => f.toLowerCase().endsWith(".pdf"));
@@ -90,23 +92,24 @@ async function convertNow(inputPath) {
           fs.copyFileSync(from, to);
           return to;
         }
-        lastError = "LibreOffice ran but produced no PDF.";
+        lastError = "LibreOffice couldn't open this file.";
+        break; // the same file would fail the same way under another name
       } else if (result.error.code !== "ENOENT") {
+        launched = true;
         if (result.error.killed) {
           profileNumber++;
           lastError = "LibreOffice took too long (over 2 minutes).";
-          break; // another copy of LibreOffice would only take as long again
         } else {
-          lastError = result.stderr || result.error.message;
+          lastError = "LibreOffice couldn't open this file.";
         }
+        break; // another copy of LibreOffice would only fail or take as long again
       }
     }
 
-    throw new Error(
-      "Could not convert this file to PDF. " +
-        lastError +
-        " Install LibreOffice on the main computer, or print a PDF instead."
-    );
+    if (!launched) {
+      throw new Error("Could not convert this file to PDF. LibreOffice was not found. Install LibreOffice on the main computer, or print a PDF instead.");
+    }
+    throw new Error("Could not convert this file to PDF. " + lastError + " It may be damaged or protected by a password: try saving it as a PDF and printing that.");
   } finally {
     // Removed whatever happened - a failed copy used to leave it behind.
     try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (err) { /* temp folder */ }

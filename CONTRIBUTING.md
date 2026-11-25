@@ -52,7 +52,7 @@ cd "Source code/tests"
 node t1-durable.js
 ```
 
-Each test prints what it checked and ends with "N checks passed". [tests/README.md](Source%20code/tests/README.md) lists them all. Pull requests run the main ones automatically, but please run the ones near your change yourself. `t4`, `t5` and `t6` need a real network card, so they can fail in a container or some virtual machines for that reason alone.
+Each test prints what it checked and ends with "N checks passed". [tests/README.md](Source%20code/tests/README.md) lists them all. Pull requests run the main ones automatically, but please run the ones near your change yourself. `t2` and `t4` to `t9` look for other computers on the network (`t4`, `t5` and `t6` need a real network card), so CI leaves them out and they can fail in a container or some virtual machines for that reason alone.
 
 New behaviour should come with a test. The existing tests are plain Node.js scripts with no test framework, and a new one can follow the same style.
 
@@ -86,6 +86,6 @@ Never add keys, passwords, tokens or `.pem` files to a pull request.
 
 If you find a security problem, please don't put the details in a public issue. [Report it privately](https://github.com/devnithdev/printbridge/security/advisories/new) instead.
 
-## Licence
+## License
 
 By contributing, you agree that your work is released under the [MIT License](LICENSE), like the rest of the project.

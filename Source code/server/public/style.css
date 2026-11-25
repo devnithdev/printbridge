@@ -238,16 +238,16 @@ button, a.button {
   cursor: pointer;
   font-weight: 550;
 }
-button:hover, a.button:hover { background: var(--accent-dark); }
+button:hover:not(:disabled), a.button:hover { background: var(--accent-dark); }
 button.secondary, a.button.secondary { background: var(--field); color: var(--ink); border-color: var(--line); font-weight: 450; }
-button.secondary:hover, a.button.secondary:hover { background: var(--bg); }
+button.secondary:hover:not(:disabled), a.button.secondary:hover { background: var(--bg); }
 button.danger { background: var(--field); color: var(--bad); border-color: var(--line); font-weight: 450; }
-button.danger:hover { background: var(--danger-hover); }
+button.danger:hover:not(:disabled) { background: var(--danger-hover); }
 button.ghost {
   background: transparent; color: var(--muted);
   border: 1px solid var(--line); padding: 5px 12px; font-size: 13px; font-weight: 450;
 }
-button.ghost:hover { background: var(--bg); color: var(--ink); border-color: var(--accent); }
+button.ghost:hover:not(:disabled) { background: var(--bg); color: var(--ink); border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 /* Printers & setup: Show is green, Hide is amber, so they look different. */
 button.show-btn { background: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-line); font-weight: 550; }
@@ -308,7 +308,7 @@ select, input[type=text], input[type=password], input[type=number], textarea {
 ::placeholder { color: var(--placeholder); opacity: 1; }
 select option { background: var(--field); color: var(--field-ink); }
 textarea { resize: vertical; }
-input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 
 .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
 .error { color: var(--bad); font-size: 14px; margin-top: 10px; }
@@ -868,3 +868,12 @@ header.one-line .theme-btn::after { content: ""; position: absolute; inset: -3px
 .name-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 14em; }
 .name-edit input { flex: 1 1 12em; min-width: 0; }
 .name-edit button { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+
+/* tap targets of at least 40px; a note beside the language picker */
+button.ghost, select.type-select, .lang-pick select { min-height: 40px; }
+.footer-links a { display: inline-block; padding: 10px 4px; }
+details.tools summary { padding: 10px 0; }
+#rmPrinters label { display: flex; align-items: center; gap: 6px; min-height: 40px; }
+.theme-btn { position: relative; }
+.theme-btn::after { content: ""; position: absolute; inset: -3px; }
+.lang-note { font-size: 12px; color: var(--muted); margin-left: 8px; }

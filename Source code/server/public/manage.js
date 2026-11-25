@@ -27,6 +27,7 @@ function setPageMessage(text, kind) {
     // Not while someone is using a control in the tables: rebuilding would close it.
     const active = document.activeElement;
     if (active && active.closest && active.closest("#printerTable, #computerTable")) return;
+    if (document.querySelector(".name-edit")) return; // a name being typed must not be wiped by a refresh
     loadPrinters().catch(() => {});
     loadComputers().catch(() => {});
   }, 10000);

@@ -33,6 +33,13 @@ function create({ storedPath, originalName, size, source }) {
   return held.get(id);
 }
 
+// How many files are waiting right now (the website refuses more past MAX_HELD,
+// so nobody can fill the disk with uploads that are never printed).
+const MAX_HELD = 60;
+function count() {
+  return held.size;
+}
+
 function get(id) {
   const entry = held.get(String(id || ""));
   if (!entry) return null;
@@ -81,4 +88,4 @@ function sweep() {
   }
 }
 
-module.exports = { create, get, take, discard, sweep, addToBucket, bucketFor, MAX_AGE_MS };
+module.exports = { create, get, take, discard, sweep, addToBucket, bucketFor, count, MAX_HELD, MAX_AGE_MS };

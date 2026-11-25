@@ -63,6 +63,9 @@ function computer(opts) {
     OP_UPDATE_INSTALL_CMD: JSON.stringify([process.execPath, path.join(FAKES, "fake-install.js"), "{file}"]),
     OP_UPDATE_RESTART_CMD: JSON.stringify([process.execPath, path.join(FAKES, "fake-restart.js")]),
     OP_LOCK_PORT: "39481",
+    // its own ports, so it never meets a real PrintBridge on this computer or another test
+    OP_OUTBOX_LOCK_PORT: "39483",
+    OP_DISCOVERY_PORT: "39484",
   }, (opts && opts.env) || {});
   for (const k of Object.keys(env)) if (env[k] === null) delete env[k];
   fs.writeFileSync(env.OP_UPDATE_INSTALLED_BIN, "program 4.1.3");

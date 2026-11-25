@@ -16,6 +16,9 @@ function startInBackground() {
   });
   child.on("error", () => {});
   child.unref();
+  // The website and printer sharing belong to the startup task (a signed-in
+  // person's copy only does the printouts part): start it too, if we may.
+  if (P.IS_WINDOWS && P.readRecord().startupTask) require("./service").startNow().catch(() => {});
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

@@ -239,5 +239,6 @@
   };
 
   refresh();
-  setInterval(refresh, 10000);
+  // Not while someone is using a button or field in the people table: rebuilding would drop it.
+  setInterval(() => { const a = document.activeElement; if (a && a.closest && a.closest("#rmPeople")) return; refresh(); }, 10000);
 })();

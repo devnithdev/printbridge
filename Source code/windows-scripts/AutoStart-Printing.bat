@@ -1,4 +1,6 @@
 @echo off
+REM  LEGACY: from before PrintBridgeSetup.exe existed. Setup and "Check PrintBridge" do this now.
+REM  Kept for reference; on a current install it can stop the wrong thing.
 setlocal
 REM ------------------------------------------------------------------
 REM  Office Printing - start everything and keep it running.

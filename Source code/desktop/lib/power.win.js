@@ -38,6 +38,11 @@ async function save() {
   const hm = h.stdout.match(/HibernateEnabled\s+REG_DWORD\s+0x([0-9a-f]+)/i);
   if (hm) before.hibernate = parseInt(hm[1], 16) !== 0;
   before.policy = (await run("reg.exe", ["query", POLICY_KEY, "/v", "NoAutoRebootWithLoggedOnUsers"])).ok;
+  if (!before.values.length) {
+    // Nothing could be read: noting that would mean "put back nothing" for ever after.
+    console.log("Couldn't read this computer's power settings, so they were not noted; they will be tried again next time.");
+    return;
+  }
   P.ensureDirs();
   fs.writeFileSync(FILE, JSON.stringify(before, null, 2));
   console.log("Noted this computer's power settings, to put back if " + B.NAME + " is ever removed.");

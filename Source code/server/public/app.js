@@ -343,7 +343,7 @@ function openPrintModalWith(files) {
   pendingFiles = fitting.map((file) => newEntry({ name: file.name, size: file.size, file }));
   previewWorker(); // start now, so it is ready by the time the file has been sent
   showPrintModal(tooBig.length ? tooBig.length + " file(s) were too big and have been left out." : "");
-  for (const entry of pendingFiles) uploadEntry(entry);
+  for (const entry of pendingFiles) uploadSoon(entry);
 }
 
 // A printout from another program, already on the website.
@@ -439,6 +439,26 @@ const UPLOAD_TRIES = 3;
 const QUIET_MS_PDF = 20000;
 const QUIET_MS_OTHER = 150000;
 
+// Browsers only run about five requests at once (the live queue uses one), so
+// a dozen files at once would have the last ones wait and then be given up on.
+// Three go up at a time; the rest wait their turn before their timers start.
+const UPLOADS_AT_ONCE = 3;
+let uploadsRunning = 0;
+const uploadWaiting = [];
+function uploadSoon(entry) {
+  uploadWaiting.push(entry);
+  pumpUploads();
+}
+function pumpUploads() {
+  while (uploadsRunning < UPLOADS_AT_ONCE && uploadWaiting.length) {
+    const next = uploadWaiting.shift();
+    if (next.cancelled) continue;
+    uploadsRunning++;
+    next.slot = true;
+    uploadEntry(next);
+  }
+}
+
 function uploadEntry(entry) {
   const form = new FormData();
   form.append("file", entry.file);
@@ -455,6 +475,7 @@ function uploadEntry(entry) {
       entry.status = "uploading";
       entry.progress = 0;
       renderPrintModal();
+      entry.retrying = true; // keeps its place among the three
       uploadEntry(entry);
       return;
     }
@@ -483,7 +504,11 @@ function uploadEntry(entry) {
     renderFileList();
     if (pendingFiles[activeIndex] === entry) renderPreview();
   };
-  xhr.onloadend = () => clearTimeout(quietTimer);
+  xhr.onloadend = () => {
+    clearTimeout(quietTimer);
+    if (entry.retrying) { entry.retrying = false; return; } // the next try carries on in its place
+    if (entry.slot) { entry.slot = false; uploadsRunning = Math.max(0, uploadsRunning - 1); pumpUploads(); }
+  };
   xhr.onload = () => {
     entry.xhr = null;
     let data = {};
@@ -1166,6 +1191,13 @@ function renderOptions() {
   copies.min = "1";
   copies.max = String(maxCopies);
   copies.value = "1";
+  // Typing 150 would silently print 99: keep it within what is allowed, in view.
+  copies.addEventListener("change", () => {
+    let n = Math.round(Number(copies.value));
+    if (!(n >= 1)) n = 1;
+    if (n > maxCopies) n = maxCopies;
+    copies.value = String(n);
+  });
   box.appendChild(field("Copies", copies));
 
   if (papers.length > 0) {
@@ -1336,8 +1368,11 @@ function showCountdownSeconds(n) {
 // Printers may have changed while this screen was away (marked out of order, switched off).
 async function refreshPrintersNow() {
   try { await loadPrinters(true); } catch (err) { return; }
+  // The options are drawn again for the printer; what was chosen stays chosen.
+  const chosen = ["optCopies", "optPaper", "optColor", "optSides"].map((id) => [id, $(id) ? $(id).value : null]);
   renderPrinterPick();
   renderOptions();
+  for (const [id, value] of chosen) if (value !== null && $(id) && [...($(id).options || [{ value }])].some((o) => o.value === value)) $(id).value = value;
   updatePrintButton();
 }
 
@@ -1398,7 +1433,7 @@ async function sendPrints(plan) {
   for (const entry of ready) {
     try {
       if (byHand && !entry.pageCount && !entry.chosen.size) {
-        throw new Error("both sides by hand needs the page preview, which couldn't be shown for this file. Choose One side, or tick the pages to print");
+        throw new Error("Both sides by hand needs the page preview, which couldn't be shown for this file. Choose One side, or tick the pages to print.");
       }
       const halves = byHand ? handFlipHalves(entry) : null;
       if (!halves || !halves.backs.length) {
@@ -1408,8 +1443,8 @@ async function sendPrints(plan) {
         box.textContent = "Printing the front sides of " + entry.name + "...";
         const first = await send(entry, halves.fronts.join(","), true);
         const how = await waitForJob(first.job.id);
-        if (how !== "done") throw new Error("the front sides " + (how === "too slow" ? "didn't finish in 15 minutes" : how === "cancelled" ? "were cancelled" : "didn't print") + ", so the backs weren't sent");
-        if (!(await askToFlip(entry.name, halves.backs.length))) throw new Error("only the front sides were printed");
+        if (how !== "done") throw new Error("The front sides " + (how === "too slow" ? "didn't finish in 15 minutes" : how === "cancelled" ? "were cancelled" : "didn't print") + ", so the backs weren't sent.");
+        if (!(await askToFlip(entry.name, halves.backs.length))) throw new Error("Only the front sides were printed.");
         box.textContent = "Printing the back sides of " + entry.name + "...";
         await send(entry, halves.backs.join(","), false);
       }
@@ -1901,6 +1936,12 @@ function listenForLiveUpdates() {
     setPageMessage(null);
     loadQueue().catch(() => {});
     loadPrinters().catch(() => {});
+    // Calls for help answered or made while the connection was down.
+    api("/api/help").then((list) => {
+      const open = new Set(list.map((a) => a.id));
+      for (const id of [...openAlerts.keys()]) if (!open.has(id)) removeAlertBanner(id);
+      for (const alert of list) showAlertBanner(alert, true);
+    }).catch(() => {});
   };
 
   source.onerror = () => {

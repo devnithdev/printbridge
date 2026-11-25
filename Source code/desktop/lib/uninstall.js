@@ -47,7 +47,7 @@ function removeTempPages() {
     let names = [];
     try { names = fs.readdirSync(dir); } catch (err) { continue; }
     for (const name of names) {
-      if (!/^office-printing-(check|not-sent(-\d+)?(-[0-9a-f]+)?)\.html$/.test(name)) continue;
+      if (!/^(office-printing|printbridge)-(check|not-sent(-\d+)?(-[0-9a-f]+)?)\.html$/.test(name)) continue;
       try { fs.rmSync(path.join(dir, name), { force: true }); } catch (err) { /* fine */ }
     }
   }

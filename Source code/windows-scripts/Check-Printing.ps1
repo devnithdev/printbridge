@@ -1,3 +1,4 @@
+# LEGACY: from before PrintBridgeSetup.exe existed. "Check PrintBridge" does this now.
 # ------------------------------------------------------------------
 #  Office Printing - health check.
 #

@@ -209,7 +209,22 @@ app.get("/api/printers", (req, res) => {
 // Turns an uploaded file into a PDF ready to print. Returns the PDF's path;
 // throws an Error whose message can be shown to the person.
 async function readyToPrint(file) {
-  if (convert.isPdf(file.originalname)) return file.path;
+  if (convert.isPdf(file.originalname)) {
+    // A name ending in .pdf isn't enough: a saved web page or a renamed file would only fail at the printer.
+    let head = "";
+    try {
+      const fd = fs.openSync(file.path, "r");
+      const buffer = Buffer.alloc(1024);
+      const n = fs.readSync(fd, buffer, 0, 1024, 0);
+      fs.closeSync(fd);
+      head = buffer.slice(0, n).toString("latin1");
+    } catch (e) { /* treated as not a PDF */ }
+    if (!head.includes("%PDF-")) {
+      try { fs.unlinkSync(file.path); } catch (e) {}
+      throw new Error("That file isn't a real PDF.");
+    }
+    return file.path;
+  }
   if (!convert.needsConversion(file.originalname)) {
     try { fs.unlinkSync(file.path); } catch (e) {}
     throw new Error("That kind of file can't be printed.");
@@ -242,6 +257,11 @@ function publicUpload(entry) {
 app.post("/api/uploads", upload.single("file"), handleAsync(async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "No file arrived. Try dropping it again." });
+    return;
+  }
+  if (held.count() >= held.MAX_HELD) {
+    fs.unlink(req.file.path, () => {});
+    res.status(429).json({ error: "Too many files are waiting to be printed. Try again in a few minutes." });
     return;
   }
   let storedPath;
@@ -517,7 +537,8 @@ const lastHelpAt = new Map(); // deviceId -> when
 
 app.post("/api/help", (req, res) => {
   for (const [id, at] of lastHelpAt) if (Date.now() - at > HELP_COOLDOWN_MS) lastHelpAt.delete(id);
-  const previous = lastHelpAt.get(req.deviceId) || 0;
+  // Per browser, and per address too: a program that sends no cookie gets a new browser id every time.
+  const previous = Math.max(lastHelpAt.get(req.deviceId) || 0, lastHelpAt.get("ip:" + req.ip) || 0);
   const waitMs = HELP_COOLDOWN_MS - (Date.now() - previous);
   if (waitMs > 0) {
     res.status(429).json({
@@ -529,6 +550,7 @@ app.post("/api/help", (req, res) => {
   }
 
   lastHelpAt.set(req.deviceId, Date.now());
+  lastHelpAt.set("ip:" + req.ip, Date.now());
   const alert = help.create(device.cleanLabel(req.body.label), req.body.message);
   res.json({ ok: true, alert: help.publicAlert(alert) });
 });
@@ -581,10 +603,13 @@ app.post("/api/manage/printers/:id/rename", (req, res) => {
     res.status(400).json({ error: "Type the name to show." });
     return;
   }
+  const shownBefore = agents.labelOf(printer);
   if (!agents.setDisplayName(printer, req.body.name)) {
     res.status(400).json({ error: "Another printer is already called that." });
     return;
   }
+  // People allowed on "print from anywhere" were saved by the name they were shown.
+  remote.renamePrinter(shownBefore, agents.labelOf(printer)).catch(() => {});
   jobs.broadcastQueue();
   res.json({ ok: true, label: agents.labelOf(printer) });
 });
@@ -651,7 +676,7 @@ app.post("/api/manage/printers/:id/duplex", (req, res) => {
     return;
   }
   if (!agents.setDuplexMode(printer, req.body && req.body.mode)) {
-    res.status(400).json({ error: "Choose automatic, yes or no." });
+    res.status(400).json({ error: "Choose automatic, yes, by hand or no." });
     return;
   }
   res.json({ ok: true });
@@ -941,6 +966,10 @@ app.use((err, req, res, next) => {
 
   if (err && err.code === "LIMIT_FILE_SIZE") {
     res.status(413).json({ error: "That file is bigger than " + MAX_UPLOAD_MB + " MB." });
+    return;
+  }
+  if (err && err.type === "entity.too.large" && req.path === "/api/uploads/printout") {
+    res.status(413).json({ error: "That printout is bigger than " + MAX_UPLOAD_MB + " MB." });
     return;
   }
   if (err && (err.type === "entity.too.large" || err.type === "entity.parse.failed" || String(err.code || "").startsWith("LIMIT_"))) {

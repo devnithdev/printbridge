@@ -436,6 +436,22 @@ async function addPerson(input) {
   return { person: publicPerson(p), code };
 }
 
+// A printer was renamed: lists saved with the name people were shown before, and
+// printouts waiting for approval, follow it to the new name.
+async function renamePrinter(from, to) {
+  if (!state || !from || !to || from === to) return;
+  let changed = false;
+  for (const p of state.people) {
+    if (!Array.isArray(p.printers) || !p.printers.includes(from)) continue;
+    p.printers = [...new Set(p.printers.map((n) => (n === from ? to : n)))];
+    changed = true;
+  }
+  for (const e of state.pending) if (e.printer === from) { e.printer = to; changed = true; }
+  if (!changed) return;
+  save();
+  await pushConfig(true).catch(() => {});
+}
+
 async function updatePerson(id, input) {
   const p = state.people.find((x) => x.id === id);
   if (!p) throw new Error("That person isn't on the list any more.");
@@ -532,4 +548,4 @@ function pendingFiles() {
   return state.pending.map((e) => path.basename(e.filePath));
 }
 
-module.exports = { findPrinter, expireOld, pendingFiles, isLocked, unlockSettings, lockSettings, start, stop, poll, status, connect, disconnect, addPerson, updatePerson, newCodeFor, removePerson, approve, reject, hashCode, newCode };
+module.exports = { renamePrinter, findPrinter, expireOld, pendingFiles, isLocked, unlockSettings, lockSettings, start, stop, poll, status, connect, disconnect, addPerson, updatePerson, newCodeFor, removePerson, approve, reject, hashCode, newCode };

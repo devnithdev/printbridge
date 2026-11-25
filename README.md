@@ -31,7 +31,7 @@ One main computer runs the printing page, computers with printers share them, an
 ## Highlights
 
 * **Zero-install mobile printing**: Scan a QR code on the office wall and print directly from Safari, Chrome, or any mobile browser on iPhone, iPad, and Android. No apps or accounts needed.
-* **Google Cloud Print alternative**: Keeps all printing local to your office Wi-Fi network. No cloud subscriptions, external accounts, or documents leaving your building.
+* **Google Cloud Print alternative**: Keeps all printing local to your office Wi-Fi network. No cloud subscriptions or external accounts, and no documents leave your building unless you turn on the optional drop page.
 * **Cross-platform**: Seamlessly connects Windows 10/11 and macOS (Apple Silicon & Intel) machines across the local network.
 * **Print from desktop apps**: Includes a native **PrintBridge** virtual printer so you can print directly from Microsoft Office, Acrobat, or any software.
 * **Smart print preview & queue**: Page-by-page visual preview, printer cards that show the maker, kind (inkjet, laser, dot matrix, receipt) and colour or black & white, and live queue tracking. A print goes only to the printer you chose.
@@ -39,6 +39,8 @@ One main computer runs the printing page, computers with printers share them, an
 * **Time to change your mind**: After Print there are 7 seconds to Cancel, Edit or press Print now.
 * **Both sides, with or without a duplex unit**: Each printer card says whether it prints both sides by itself, by hand or one side only. For a printer that can't turn the paper over, PrintBridge prints the fronts, shows how to turn the stack, then prints the backs.
 * **Out of order**: Mark a broken printer on Printers & setup. It stays on the print page, greyed out, and nothing is sent to it until it is marked working again.
+* **Clear names**: Rename a printer on Printers & setup ("Front desk laser"). Everyone sees the new name; the printer keeps its own name behind the scenes. Names, colour, both sides, hidden and out-of-order choices are kept through updates and restarts.
+* **Printing from anywhere (optional)**: Give chosen people a personal code and a small drop page. Their files are locked in their browser and opened only on the office computer, which prints them. Files wait online for up to 14 days until collected.
 * **Optional back-up printer**: Tick it and, if your printer is off or fails, the job moves to a printer of the same kind. Inkjet and laser stand in for each other only with a second tick; dot matrix and receipt printers only use their own kind. Off by default.
 * **Your language**: A language picker on the printing page, with Sinhala and Tamil first and every other Google Translate language after them.
 * **A 3-minute video guide** in [English](https://youtu.be/Cx2plyjPf7w), [Sinhala](https://youtu.be/sP1R5dWC5Hw) and [Tamil](https://youtu.be/5sw9WdwODrY): installing on Windows and Mac, printing from a phone, from the page and from Excel. A short video shows just printing from a phone, in [English](https://youtu.be/R-5XXXhX6Mg), [Sinhala](https://youtu.be/oU3_QhFajBc) and [Tamil](https://youtu.be/4WxqC4cTjJE).
@@ -70,7 +72,7 @@ Install the **main computer** first, then the **computers with printers**, then 
 | `Source code/installer-mac` | macOS `.pkg` and `.dmg` installer scripts |
 | `Source code/relay` | Optional Cloudflare Worker drop page for remote printing ("Printing from anywhere") |
 | `Source code/release/publish-update.js` | Key generation, version bumping, release signing, and publishing |
-| `Source code/tests` | Automated test suites (`t1-durable.js` through `t24-settings-survive.js`, no t7) |
+| `Source code/tests` | Automated test suites (`t1-durable.js` through `t25-fixes.js`, no t7) |
 | `BUILD-ALL.command` | Builds both the Windows and Mac installers from start to finish on a Mac |
 | `PUBLISH-UPDATE.command` | Signs the release manifest and publishes an automatic update |
 
@@ -101,6 +103,7 @@ node t21-bucket-expiry.js
 node t22-both-sides.js
 node t23-rename-remote.js
 node t24-settings-survive.js
+node t25-fixes.js
 ```
 
 `tests/README.md` lists every test, including t2, t4, t5, t6, t8 and t9, which look for other computers on the network or take longer, and run before bigger changes. CI leaves them out, and t4, t5 and t6 need a real network card. There is no t7.
