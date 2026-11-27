@@ -1,6 +1,6 @@
 {
   "name": "print-platform-agent",
-  "version": "4.2.22",
+  "version": "4.2.23",
   "private": true,
   "description": "PrintBridge printer agent (macOS and Windows)",
   "author": "Devnith AE",

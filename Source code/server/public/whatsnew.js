@@ -4,6 +4,29 @@
 // Google Translate, so the pop-up is marked "notranslate".
 // Newest first. Keep it to 2-4 short lines a person reads in ten seconds.
 var WHATS_NEW = {
+  "4.2.23": {
+    en: {
+      title: "What's new in PrintBridge",
+      items: [
+        "Fixed: after the last update, some computers could no longer open their own printer list, so printing stopped. This update repairs that by itself.",
+      ],
+      ok: "Got it",
+    },
+    si: {
+      title: "PrintBridge හි අලුත් දේ",
+      items: [
+        "නිවැරදි කළා: පසුගිය යාවත්කාලීනයෙන් පසු සමහර පරිගණකවලට තමන්ගේම මුද්‍රණ යන්ත්‍ර ලැයිස්තුව විවෘත කළ නොහැකි වූ නිසා මුද්‍රණය නතර විය. මෙම යාවත්කාලීනය එය ස්වයංක්‍රීයව නිවැරදි කරයි.",
+      ],
+      ok: "හරි",
+    },
+    ta: {
+      title: "PrintBridge-இல் புதியவை",
+      items: [
+        "சரிசெய்யப்பட்டது: கடந்த புதுப்பிப்புக்குப் பிறகு சில கணினிகளால் தங்கள் அச்சுப்பொறி பட்டியலைத் திறக்க முடியாததால் அச்சிடுதல் நின்றது. இந்தப் புதுப்பிப்பு அதைத் தானாகவே சரிசெய்யும்.",
+      ],
+      ok: "சரி",
+    },
+  },
   "4.2.22": {
     en: {
       title: "What's new in PrintBridge",

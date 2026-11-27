@@ -86,7 +86,13 @@ const P = {
 
 function ensureDirs() {
   for (const dir of [P.DATA_DIR, P.WEBSITE_DIR, P.UPLOAD_DIR, P.PRINTER_DIR, P.OUTBOX_DIR, P.LOG_DIR]) {
-    fs.mkdirSync(dir, { recursive: true });
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (err) {
+      // The website and printer folders are locked to the startup task: a
+      // signed-in copy that can't open them must still start its own parts.
+      if (err.code !== "EPERM" && err.code !== "EACCES") throw err;
+    }
   }
 }
 

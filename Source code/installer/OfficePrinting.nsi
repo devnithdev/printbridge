@@ -51,7 +51,7 @@ SetCompressorDictSize 64
 !define TAGLINE "Print from any phone or computer to any printer in the office."
 !define COMPANY "Devnith AE"
 !define CREDIT "${U+2615} by @devnithdev"
-!define VERSION "4.2.22"
+!define VERSION "4.2.23"
 !define EXE "OfficePrinting.exe"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OfficePrinting"
 !define RUNKEY "Software\Microsoft\Windows\CurrentVersion\Run"
@@ -1342,16 +1342,21 @@ Section "${BRAND}" SecMain
   ; reading or changing them. Only the system account (which runs both through
   ; the startup task) and administrators - but only once that task really
   ; exists, because otherwise a signed-in person has to be able to run them.
-  ; (The "everyone may modify" grant above also left entries of its own on what
-  ; was already there, so those are taken away first.)
+  ; Only the folder itself gets these rules; everything inside is reset to
+  ; follow it. (4.2.22 put the folder's rules on every file as well, which on a
+  ; file means no rules at all: nobody, not even the system account, could open
+  ; the printer list. Taking the files back for administrators first repairs
+  ; those. The reset also drops the "everyone may modify" entries above.)
   nsExec::ExecToStack '"$SYSDIR\schtasks.exe" /Query /TN "${APP}"'
   Pop $0
   Pop $1
   ${If} $0 == 0
-    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /remove:g *S-1-5-32-545 /T /Q'
-    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F /T /Q'
-    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\printer" /remove:g *S-1-5-32-545 /T /Q'
-    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\printer" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F *S-1-5-32-545:(OI)(CI)RX /T /Q'
+    !insertmacro QUIET '"$SYSDIR\takeown.exe" /F "$APPDATA\${APP}\website" /R /A /D Y'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /reset /T /C /Q'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\website" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F /Q'
+    !insertmacro QUIET '"$SYSDIR\takeown.exe" /F "$APPDATA\${APP}\printer" /R /A /D Y'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\printer" /reset /T /C /Q'
+    !insertmacro QUIET '"$SYSDIR\icacls.exe" "$APPDATA\${APP}\printer" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F *S-1-5-32-545:(OI)(CI)RX /Q'
   ${EndIf}
 
   DetailPrint "Adding ${BRAND} to the Start menu and desktop..."
